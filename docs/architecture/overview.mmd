@@ -1,28 +1,43 @@
 flowchart LR
-  subgraph Clients
-    C1[Consumer LIFF]
-    C2[Operator LIFF]
-    C3[Replenisher LIFF]
+  %% C4 Container style (Mermaid)
+  subgraph BoundaryClient[Client Boundary]
+    C1[消費者 LIFF
+Container: Web App]
+    C2[營運者 LIFF
+Container: Web App]
+    C3[巡補員 LIFF
+Container: Web App]
   end
 
-  subgraph Backend
-    B1[API Gateway]
-    B2[Auth/Identity]
-    B3[Customer Service]
-    B4[Product Master]
-    B5[Reservation Templates]
-    B6[Replenishment Session]
-    B7[Machine Registry]
+  subgraph BoundaryBackend[Backend Boundary]
+    B1[API Gateway
+Container: API]
+    B2[身分識別服務
+Container: Auth Service]
+    B3[客服服務
+Container: Service]
+    B4[商品主檔服務
+Container: Service]
+    B5[庫存預約設定服務
+Container: Service]
+    B6[巡補作業服務
+Container: Service]
+    B7[機台管理服務
+Container: Service]
   end
 
-  subgraph Storage
-    S1[(Backend DB)]
-    S2[(Object Storage)]
+  subgraph BoundaryStorage[Storage Boundary]
+    S1[(後端資料庫
+Container: Database)]
+    S2[(物件儲存
+Container: Object Storage)]
   end
 
-  subgraph MachineSide
-    M1[Machine Runtime]
-    M2[(Machine Local DB)]
+  subgraph BoundaryMachine[Machine Boundary]
+    M1[機台執行環境
+Container: Runtime]
+    M2[(機台本機資料庫
+Container: Database)]
   end
 
   C1 --> B1
