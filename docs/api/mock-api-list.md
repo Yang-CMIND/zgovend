@@ -1,63 +1,63 @@
-# Mock API List (Draft)
+# Mock API 清單（草案）
 
-Base path: `/api/v1`
+基礎路徑：`/api/v1`
 
-## Auth and Identity
-- `POST /auth/liff/login` (All roles)
-  - Exchange LIFF token for backend session
+## 身分驗證
+- `POST /auth/liff/login`（所有角色）
+  - 以 LIFF token 交換後端 session
 
-## Customer Service (Consumer)
+## 客服問題（一般消費者）
 - `POST /support/tickets`
-  - Create support ticket with category, description, attachments
+  - 建立問題單（分類、描述、附件）
 - `GET /support/tickets`
-  - List own tickets with status
+  - 查詢本人問題單清單與狀態
 - `GET /support/tickets/{ticketId}`
-  - Get ticket details and reply text
+  - 查詢問題單細節與回覆內容
 
-## Product Master (Operator)
+## 商品主檔（營運者）
 - `GET /products`
-  - List products
+  - 取得商品清單
 - `POST /products`
-  - Create product
+  - 建立商品
 - `PATCH /products/{productId}`
-  - Update product fields
+  - 更新商品欄位
 - `DELETE /products/{productId}`
-  - Hard delete product
+  - 硬刪除商品
 
-## Reservation Templates (Operator)
+## 庫存預約設定（營運者）
 - `GET /reservation-templates`
-  - List templates
+  - 取得設定檔清單
 - `POST /reservation-templates`
-  - Create empty template
+  - 建立空白設定檔
 - `POST /reservation-templates/{templateId}/copy-from-machine`
-  - Create from machine snapshot
+  - 由機台快照建立設定檔
 - `POST /reservation-templates/{templateId}/copy-from-template`
-  - Create from existing template
+  - 由既有設定檔建立複本
 - `PATCH /reservation-templates/{templateId}`
-  - Rename template
+  - 更名設定檔
 - `DELETE /reservation-templates/{templateId}`
-  - Hard delete template
+  - 硬刪除設定檔
 - `PUT /reservation-templates/{templateId}/channels`
-  - Update channel product, clear product, set full stock
+  - 更新貨道商品、清空商品、滿倉量
 
-## Pick List (Replenisher)
+## 撿貨清單（巡補員）
 - `POST /picklists`
-  - Generate pick list from selected machines
+  - 依選擇機台產生撿貨清單
 
-## Replenishment (Replenisher)
+## 巡補作業（巡補員）
 - `POST /machines/{machineId}/checkin`
-  - Verify on-site check-in
+  - 現場簽到驗證
 - `POST /replenishment/sessions`
-  - Start session
+  - 建立巡補 Session
 - `POST /replenishment/sessions/{sessionId}/apply-template`
-  - Apply reservation template (staged)
+  - 套用預約設定檔（暫存）
 - `PATCH /replenishment/sessions/{sessionId}/channels`
-  - Update channel product/stock/full stock (staged)
+  - 更新貨道商品/庫存/滿倉量（暫存）
 - `POST /replenishment/sessions/{sessionId}/complete`
-  - Commit changes to machine local DB
+  - 提交巡補結果並寫入機台
 
-## Machine Sync (System)
+## 機台同步（系統）
 - `POST /machine-sync/inventory`
-  - Sync machine inventory snapshot to backend
+  - 同步機台庫存快照
 - `POST /machine-sync/events`
-  - Sync machine events or status
+  - 同步機台事件或狀態
