@@ -1,45 +1,45 @@
-# Architecture Overview (Mock)
+# 架構總覽（草案）
 
-## Scope
-This document describes the high-level system structure for the LIFF backend and machine integration based on backend-spec v0.3.
+## 範圍
+本文件說明 LIFF 後端與機台整合的高階系統結構，依據 backend-spec v0.3。
 
-## Roles
-- Consumer: report issues and view case status/replies.
-- Operator: manage product master and reservation templates.
-- Replenisher: generate pick lists and perform on-site replenishment.
+## 角色
+- 消費者：回報問題並查看案件狀態與回覆。
+- 營運者：管理商品主檔與庫存預約樣板。
+- 巡補員：產生揀貨清單並執行現場補貨。
 
-## Core Components
-- LIFF clients
-  - Consumer LIFF
-  - Operator LIFF
-  - Replenisher LIFF
-- Backend services
-  - Auth/Identity (LINE userId)
-  - Customer Service
-  - Product Master
-  - Reservation Templates
-  - Replenishment Session
-  - Machine Registry
-- Data stores
-  - Backend DB (products, templates, tickets, reports)
-  - Object storage (images, attachments)
-- Machine side
-  - Machine runtime
-  - Local DB (real-time inventory, replenishment writes)
-- Integration layer
-  - MQ/Web Services for data sync between backend and machines
+## 核心元件
+- LIFF 用戶端
+  - 消費者 LIFF
+  - 營運者 LIFF
+  - 巡補員 LIFF
+- 後端服務
+  - 身分驗證/識別（LINE userId）
+  - 客服服務
+  - 商品主檔
+  - 庫存預約樣板
+  - 巡補作業
+  - 機台管理
+- 資料儲存
+  - 後端資料庫（商品、樣板、工單、回報）
+  - 物件儲存（圖片、附件）
+- 機台端
+  - 機台執行環境
+  - 本機資料庫（即時庫存、巡補寫入）
+- 整合層
+  - MQ/Web Services：用於後端與機台的資料同步
 
-## Data Ownership
-- Backend DB is the source of truth for product master and reservation templates.
-- Machine local DB is the source of truth for real-time inventory during sales.
-- Replenishment writes are only committed to machine local DB after session end.
+## 資料權威
+- 後端資料庫是商品主檔與庫存預約樣板的權威來源。
+- 機台本機資料庫是銷售期間即時庫存的權威來源。
+- 巡補寫入僅在巡補作業結束後提交至機台本機資料庫。
 
-## Key Data Flows
-- Consumer support ticket: LIFF -> Backend -> DB (attachments in object storage).
-- Operator product/template management: LIFF -> Backend -> DB.
-- Replenisher pick list: LIFF -> Backend -> DB + machine data aggregation.
-- Replenishment on-site: LIFF -> Backend (validate) -> Machine (write on session end).
+## 主要資料流程
+- 消費者客服工單：LIFF -> 後端 -> 資料庫（附件存於物件儲存）。
+- 營運者商品/樣板管理：LIFF -> 後端 -> 資料庫。
+- 巡補員揀貨清單：LIFF -> 後端 -> 資料庫 + 機台資料彙整。
+- 現場巡補：LIFF -> 後端（驗證）-> 機台（作業結束時寫入）。
 
-## Constraints
-- Permissions are enforced by backend based on role and data scope.
-- Replenishment writes are blocked in sales mode and require on-site check-in.
+## 限制
+- 權限由後端依角色與資料範圍控管。
+- 銷售模式下禁止巡補寫入，且需現場簽到。

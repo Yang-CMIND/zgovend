@@ -1,6 +1,7 @@
 flowchart LR
   %% C4 Container style (Mermaid)
   subgraph BoundaryClient[Client Boundary]
+    direction TB
     C1[消費者 LIFF
 Container: Web App]
     C2[營運者 LIFF
@@ -10,23 +11,31 @@ Container: Web App]
   end
 
   subgraph BoundaryBackend[Backend Boundary]
+    direction TB
     B1[API Gateway
 Container: API]
-    B2[身分識別服務
-Container: Auth Service]
     B3[客服服務
 Container: Service]
     B4[商品主檔服務
 Container: Service]
     B5[庫存預約設定服務
 Container: Service]
-    B6[巡補作業服務
+    B6[巡補作業/簽到服務
 Container: Service]
     B7[機台管理服務
 Container: Service]
   end
 
+  subgraph BoundaryBroker[Broker Boundary]
+    direction TB
+    B8[Reverse Proxy
+Container: Service]
+    B9[MQ/Rsync
+Container: Service]
+  end
+
   subgraph BoundaryStorage[Storage Boundary]
+    direction TB
     S1[(後端資料庫
 Container: Database)]
     S2[(物件儲存
@@ -34,29 +43,41 @@ Container: Object Storage)]
   end
 
   subgraph BoundaryMachine[Machine Boundary]
+    direction TB
+    M3[EBus
+Container: Service]
     M1[機台執行環境
 Container: Runtime]
     M2[(機台本機資料庫
 Container: Database)]
+    M4[(機台本機物件儲存
+Container: Object Storage)]
   end
 
   C1 --> B1
   C2 --> B1
   C3 --> B1
+  C3 --> B8
 
-  B1 --> B2
   B1 --> B3
   B1 --> B4
   B1 --> B5
   B1 --> B6
   B1 --> B7
+  B6 --> B8
 
   B3 --> S1
   B3 --> S2
   B4 --> S1
+  B4 --> S2
   B5 --> S1
   B6 --> S1
   B7 --> S1
+  B9 --> S1
+  B9 --> S2
 
-  B6 <-->|MQ/Web Services| M1
+  B8 <--> M3
+  B9 <-->|MQ/Rsync| M1
+  M3 <--> M1
   M1 --> M2
+  M1 --> M4
