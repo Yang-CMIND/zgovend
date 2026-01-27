@@ -11,36 +11,23 @@ flowchart TB
   Entry --> RHome[L0 巡補員 - 入口功能列]
 
   %% 一般消費者 (2~3 層內)
-  CHome --> CMember[L1 會員資訊]
-  CHome --> CSupport[L1 客服/回報]
-  CHome --> CMachines[L1 機台/門市]
-
-  CMember --> CMemberEdit[L2 編輯/綁定/隱私]
-  CSupport --> CSupportFlow[L2 回報表單/附件/紀錄/回覆]
-  CMachines --> CMachinesList[L2 列表/地圖/詳情/收藏]
+  CHome --> CReport[L1 回報問題]
+  CHome --> CList[L1 問題清單]
 
   %% 營運管理員
-  AHome --> AOrgCenter[L1 組織切換/通知中心]
   AHome --> ARevenueOrders[L1 今日營收/訂單]
   AHome --> AMachineMgmt[L1 機台管理]
   AHome --> AProductsPricing[L1 商品與價格]
   AHome --> AInventoryStrategy[L1 庫存預約設定]
-  AHome --> AReplenishmentRecords[L1 補貨記錄]
 
-  AOrgCenter --> AOrgPages[L2 組織/通知/設定]
   ARevenueOrders --> AOrderPages[L2 訂單列表/詳情/報表]
-  AMachineMgmt --> AMachinePages[L2 列表/詳情/狀態/新增]
-  AProductsPricing --> AProductPages[L2 列表/詳情/新增/促銷]
+  AMachineMgmt --> AMachinePages[L2 列表/詳情/狀態]
+  AProductsPricing --> AProductPages[L2 列表/詳情/新增]
   AInventoryStrategy --> AInventoryPages[L2 清單/命名/編輯]
-  AReplenishmentRecords --> AReplenPages[L2 列表/詳情/異常/匯出]
 
   %% 巡補員
   RHome --> RStartPatrol[L1 開始巡補]
   RHome --> RInventoryCheck[L1 撿貨清單]
-  RHome --> RFaultReport[L1 機台故障回報]
-  RHome --> RReplenishRecord[L1 補貨記錄]
 
   RStartPatrol --> RPatrolFlow[L2 簽到/預約設定/巡補作業]
   RInventoryCheck --> RInventoryFlow[L2 多選/彙總]
-  RFaultReport --> RFaultFlow[L2 描述/附件/完成]
-  RReplenishRecord --> RReplenFlow[L2 清單/備註/提交]
