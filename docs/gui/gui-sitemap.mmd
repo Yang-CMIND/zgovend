@@ -22,23 +22,17 @@ flowchart TB
   %% 營運管理員
   AHome --> AOrgCenter[L1 組織切換/通知中心]
   AHome --> ARevenueOrders[L1 今日營收/訂單]
-  AHome --> AAbnormal[L1 異常機台/待處理]
   AHome --> AMachineMgmt[L1 機台管理]
   AHome --> AProductsPricing[L1 商品與價格]
   AHome --> AInventoryStrategy[L1 庫存預約設定]
   AHome --> AReplenishmentRecords[L1 補貨記錄]
-  AHome --> AWorkordersSupport[L1 工單/客服]
-  AHome --> AAlertsIncidents[L1 最新告警/異常記錄]
 
   AOrgCenter --> AOrgPages[L2 組織/通知/設定]
   ARevenueOrders --> AOrderPages[L2 訂單列表/詳情/報表]
-  AAbnormal --> AAbnormalPages[L2 清單/詳情/指派]
   AMachineMgmt --> AMachinePages[L2 列表/詳情/狀態/新增]
   AProductsPricing --> AProductPages[L2 列表/詳情/新增/促銷]
   AInventoryStrategy --> AInventoryPages[L2 清單/命名/編輯]
   AReplenishmentRecords --> AReplenPages[L2 列表/詳情/異常/匯出]
-  AWorkordersSupport --> AWorkorderPages[L2 列表/詳情/指派/新增]
-  AAlertsIncidents --> AAlertPages[L2 列表/詳情/工單/結案]
 
   %% 巡補員
   RHome --> RStartPatrol[L1 開始巡補]
@@ -46,7 +40,7 @@ flowchart TB
   RHome --> RFaultReport[L1 機台故障回報]
   RHome --> RReplenishRecord[L1 補貨記錄]
 
-  RStartPatrol --> RPatrolFlow[L2 站點導航/進度/完成]
+  RStartPatrol --> RPatrolFlow[L2 簽到/預約設定/巡補作業]
   RInventoryCheck --> RInventoryFlow[L2 多選/彙總]
   RFaultReport --> RFaultFlow[L2 描述/附件/完成]
   RReplenishRecord --> RReplenFlow[L2 清單/備註/提交]
