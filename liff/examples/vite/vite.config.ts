@@ -8,6 +8,11 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+
+    // When accessing Vite via a reverse proxy domain (e.g. nginx), Vite may block unknown hosts.
+    // Add your proxy domain(s) here.
+    allowedHosts: ['honeypie.zgovend.com'],
+
     proxy: {
       '/liff': {
         target: proxyTarget,
