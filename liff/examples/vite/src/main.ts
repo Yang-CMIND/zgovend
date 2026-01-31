@@ -43,8 +43,10 @@ function codeBlock(obj: any) {
 }
 
 async function postJson(path: string, payload: any) {
-  if (!API_BASE) throw new Error('Missing VITE_API_BASE. This demo expects a backend endpoint to receive binding.');
-  const res = await fetch(`${API_BASE}${path}` , {
+  // Prefer same-origin requests to avoid mixed-content issues when LIFF is served over HTTPS.
+  // If VITE_API_BASE is set, we use it; otherwise, we call relative paths (and rely on Vite proxy during dev).
+  const base = API_BASE || '';
+  const res = await fetch(`${base}${path}` , {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
@@ -158,8 +160,8 @@ async function render() {
     el('p', { class: 'hint' }, [
       '這一步代表「綁定」：把 LINE 使用者身份（透過 idToken 驗證）綁到 zgovend 的 operator 或 machine。',
       ' Demo 會 POST 到 ',
-      el('code', {}, [API_BASE || '(未設定 VITE_API_BASE)']),
-      '/liff/bind。',
+      el('code', {}, [API_BASE ? `${API_BASE}/liff/bind` : '/liff/bind (same-origin, recommended)']),
+      '。',
     ]),
     el('div', { class: 'grid' }, [
       el('label', {}, ['綁定類型', bindType]),
