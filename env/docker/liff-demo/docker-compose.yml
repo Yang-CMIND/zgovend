@@ -18,6 +18,7 @@ services:
     working_dir: /app
     volumes:
       - ./mock-api:/app:cached
-    command: bash -lc "npm ci && npm run dev"
+    # mock-api does not ship a lockfile; use npm install instead of npm ci
+    command: bash -lc "npm install && npm run dev"
     ports:
       - "8787:8787"
