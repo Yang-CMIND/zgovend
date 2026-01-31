@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>zgovend LIFF basic demo</title>
+    <!-- LIFF SDK (v2) -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+      body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans", "PingFang TC", "Microsoft JhengHei"; padding: 16px; }
+      pre { background: #0b1020; color: #d6e1ff; padding: 12px; border-radius: 8px; overflow: auto; }
+      .hint { color: #444; }
+      button { padding: 8px 12px; margin-right: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>LIFF basic demo</h1>
+    <p class="hint">
+      這是最小的 LIFF 範例：初始化、登入、讀取 profile、（在 LINE 內）可選擇送訊息。
+      <br />請把 <code>LIFF_ID</code> 換成你在 LINE Developers 建立的 liffId。
+    </p>
+
+    <div>
+      <button id="btnLogin">Login</button>
+      <button id="btnLogout">Logout</button>
+      <button id="btnSend">Send message (in LINE client)</button>
+    </div>
+
+    <h2>Status</h2>
+    <pre id="out">loading...</pre>
+
+    <script>
+      const out = document.getElementById('out');
+      const btnLogin = document.getElementById('btnLogin');
+      const btnLogout = document.getElementById('btnLogout');
+      const btnSend = document.getElementById('btnSend');
+
+      // TODO: replace
+      const LIFF_ID = 'YOUR_LIFF_ID';
+
+      function log(obj) {
+        out.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+      }
+
+      async function main() {
+        await liff.init({ liffId: LIFF_ID });
+
+        const base = {
+          isInClient: liff.isInClient(),
+          isLoggedIn: liff.isLoggedIn(),
+          os: liff.getOS(),
+          language: liff.getLanguage(),
+          version: liff.getVersion(),
+        };
+
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          log({ ...base, profile });
+        } else {
+          log({ ...base, note: 'Not logged in. Click Login.' });
+        }
+      }
+
+      btnLogin.onclick = () => {
+        // login 會導回 endpoint URL
+        liff.login();
+      };
+
+      btnLogout.onclick = () => {
+        liff.logout();
+        location.reload();
+      };
+
+      btnSend.onclick = async () => {
+        if (!liff.isInClient()) {
+          alert('Not in LINE client, cannot send messages.');
+          return;
+        }
+        await liff.sendMessages([{ type: 'text', text: 'Hello from zgovend LIFF demo' }]);
+        alert('Message sent');
+      };
+
+      main().catch(err => log(String(err)));
+    </script>
+  </body>
+</html>
