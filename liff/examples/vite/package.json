@@ -1,0 +1,19 @@
+{
+  "name": "zgovend-liff-login-bind-demo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "zgovend LIFF demo: login + binding PoC",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@line/liff": "^2.27.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}
