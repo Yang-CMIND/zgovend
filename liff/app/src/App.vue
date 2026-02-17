@@ -5,7 +5,7 @@ import { useMqttAuth } from './composables/useMqttAuth'
 import { gql } from './composables/useGraphQL'
 import { useRoute, useRouter } from 'vue-router'
 
-const { init, isReady, isLoggedIn, isInClient, error, login, profile, isReplenisher, isAdmin } = useLiff()
+const { init, isReady, isLoggedIn, isInClient, error, login, profile } = useLiff()
 const { publishCheckin } = useMqttAuth()
 const route = useRoute()
 const router = useRouter()
@@ -34,21 +34,26 @@ async function handleCheckin(hid: string, nonce: string) {
   checkinStatus.value = 'processing'
   try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, status: 'verifying' }) } catch {}
 
-  // 驗證角色
-  if (!isReplenisher.value && !isAdmin.value) {
-    const errMsg = '您沒有巡補員權限'
-    checkinStatus.value = 'error'
-    checkinError.value = errMsg
-    // 通知機台端登入失敗
-    try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch {}
-    return
-  }
-
   try {
-    // 從 hid 查詢對應的 vmid
-    const data = await gql<{ vms: Array<{ vmid: string }> }>(
-      `{ vms(limit: 500) { vmid hidCode } }`
-    )
+    // 即時查詢角色與機台（不依賴 init 快取）
+    const data = await gql<{
+      currentUser: { isAdmin: boolean, operatorRoles: Array<{ operatorId: string, roles: string[] }> },
+      vms: Array<{ vmid: string, hidCode: string }>
+    }>(`{
+      currentUser { isAdmin operatorRoles { operatorId roles } }
+      vms(limit: 500) { vmid hidCode }
+    }`)
+
+    const user = data.currentUser
+    const hasReplenisher = user?.operatorRoles?.some(or => or.roles.includes('replenisher'))
+    if (!hasReplenisher && !user?.isAdmin) {
+      const errMsg = '您沒有巡補員權限'
+      checkinStatus.value = 'error'
+      checkinError.value = errMsg
+      try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch {}
+      return
+    }
+
     const vm = (data.vms as Array<{ vmid: string; hidCode: string }>)
       .find(v => v.hidCode === hid)
 
