@@ -1,7 +1,7 @@
 import mqtt from 'mqtt'
 
 export interface CheckinPayload {
-  authenticated: boolean
+  authenticated?: boolean
   nonce: string
   status?: string
   lineUserId?: string

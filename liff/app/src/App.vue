@@ -32,7 +32,7 @@ async function handleCheckin(hid: string, nonce: string) {
 
   // 先通知機台：已掃碼，正在查驗身分
   checkinStatus.value = 'processing'
-  try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, status: 'verifying' }) } catch (e) { console.error('[Checkin] MQTT verifying publish failed:', e) }
+  try { await publishCheckin(brokerUrl, hid, { nonce, status: 'verifying' }) } catch (e) { console.error('[Checkin] MQTT verifying publish failed:', e) }
 
   try {
     // 即時查詢角色（透過 upsertUser 取得最新角色）與機台
