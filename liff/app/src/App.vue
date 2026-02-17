@@ -35,16 +35,25 @@ async function handleCheckin(hid: string, nonce: string) {
   try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, status: 'verifying' }) } catch {}
 
   try {
-    // 即時查詢角色與機台（不依賴 init 快取）
-    const data = await gql<{
-      currentUser: { isAdmin: boolean, operatorRoles: Array<{ operatorId: string, roles: string[] }> },
-      vms: Array<{ vmid: string, hidCode: string }>
-    }>(`{
-      currentUser { isAdmin operatorRoles { operatorId roles } }
-      vms(limit: 500) { vmid hidCode }
-    }`)
+    // 即時查詢角色（透過 upsertUser 取得最新角色）與機台
+    const [userData, vmData] = await Promise.all([
+      gql<{ upsertUser: { isAdmin: boolean, operatorRoles: Array<{ operatorId: string, roles: string[] }> } }>(
+        `mutation($input: UpsertUserInput!) {
+          upsertUser(input: $input) { isAdmin operatorRoles { operatorId roles } }
+        }`, {
+          input: {
+            lineUserId: profile.value.userId,
+            displayName: profile.value.displayName,
+            pictureUrl: profile.value.pictureUrl || '',
+          }
+        }
+      ),
+      gql<{ vms: Array<{ vmid: string, hidCode: string }> }>(
+        `{ vms(limit: 500) { vmid hidCode } }`
+      ),
+    ])
 
-    const user = data.currentUser
+    const user = userData.upsertUser
     const hasReplenisher = user?.operatorRoles?.some(or => or.roles.includes('replenisher'))
     if (!hasReplenisher && !user?.isAdmin) {
       const errMsg = '您沒有巡補員權限'
@@ -54,7 +63,7 @@ async function handleCheckin(hid: string, nonce: string) {
       return
     }
 
-    const vm = (data.vms as Array<{ vmid: string; hidCode: string }>)
+    const vm = (vmData.vms as Array<{ vmid: string; hidCode: string }>)
       .find(v => v.hidCode === hid)
 
     if (!vm) {
