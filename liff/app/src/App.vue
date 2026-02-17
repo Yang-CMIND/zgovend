@@ -49,25 +49,28 @@ async function handleCheckin(hid: string, nonce: string) {
         }
       ),
       gql<{ vms: Array<{ vmid: string, hidCode: string }> }>(
-        `{ vms(limit: 500) { vmid hidCode } }`
+        `{ vms(limit: 500) { vmid hidCode operatorId } }`
       ),
     ])
 
     const user = userData.upsertUser
-    const hasReplenisher = user?.operatorRoles?.some(or => or.roles.includes('replenisher'))
-    if (!hasReplenisher) {
-      const errMsg = '您沒有巡補員權限'
+    const vm = (vmData.vms as Array<{ vmid: string; hidCode: string; operatorId: string }>)
+      .find(v => v.hidCode === hid)
+
+    if (!vm) {
+      const errMsg = `找不到 HID ${hid} 對應的機台`
       try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch (e) { console.error('[Checkin] MQTT publish failed:', e) }
       checkinStatus.value = 'error'
       checkinError.value = errMsg
       return
     }
 
-    const vm = (vmData.vms as Array<{ vmid: string; hidCode: string }>)
-      .find(v => v.hidCode === hid)
-
-    if (!vm) {
-      const errMsg = `找不到 HID ${hid} 對應的機台`
+    // 檢查該 user 是否為此機台所屬營運商的 replenisher
+    const hasReplenisher = user?.operatorRoles?.some(
+      or => or.operatorId === vm.operatorId && or.roles.includes('replenisher')
+    )
+    if (!hasReplenisher) {
+      const errMsg = '您沒有此機台的巡補員權限'
       try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch (e) { console.error('[Checkin] MQTT publish failed:', e) }
       checkinStatus.value = 'error'
       checkinError.value = errMsg
