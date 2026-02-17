@@ -1,0 +1,280 @@
+/* === Reset & Base === */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  background: #f5f5f5;
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* === Layout === */
+.page { min-height: 100dvh; padding-bottom: env(safe-area-inset-bottom, 16px); }
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.header h1 { font-size: 18px; font-weight: 600; }
+.back { font-size: 20px; line-height: 1; }
+
+/* === User Info === */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 14px;
+}
+.avatar { width: 32px; height: 32px; border-radius: 50%; }
+
+/* === Role Navigation (Home) === */
+.role-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+.role-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  transition: transform 0.15s;
+}
+.role-card:active { transform: scale(0.98); }
+.role-icon { font-size: 28px; }
+.role-label { font-size: 17px; font-weight: 600; }
+.role-desc { font-size: 13px; color: #666; }
+
+/* === Menu === */
+.menu {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 8px;
+}
+.menu-item {
+  display: block;
+  padding: 16px;
+  background: #fff;
+  border-radius: 10px;
+  font-size: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.menu-item:active { background: #f0f0f0; }
+
+/* === Buttons === */
+.btn-primary {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin: 24px auto;
+  padding: 14px;
+  background: #06c755;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-primary:active { background: #05a847; }
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 16px;
+}
+
+/* === States === */
+.loading, .login-page, .error-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60dvh;
+  text-align: center;
+  padding: 24px;
+}
+.login-page h1 { font-size: 24px; margin-bottom: 8px; }
+.error-page h2 { color: #b00020; }
+
+.placeholder {
+  padding: 40px;
+  text-align: center;
+  color: #999;
+  font-size: 15px;
+}
+
+.footer {
+  text-align: center;
+  padding: 24px;
+}
+
+/* === Header Badge === */
+.header-badge {
+  margin-left: auto;
+  background: #e0e0e0;
+  color: #333;
+  font-size: 13px;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+/* === User List === */
+.user-list { list-style: none; padding: 8px 12px; }
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px;
+  background: #fff;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  cursor: pointer;
+}
+.user-item:active { background: #f5f5f5; }
+.avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8e8e8;
+  font-size: 18px;
+}
+.user-info-col { flex: 1; min-width: 0; }
+.user-name { font-size: 15px; font-weight: 600; }
+.user-roles { font-size: 13px; color: #06c755; margin-top: 2px; }
+.user-meta { font-size: 11px; color: #999; margin-top: 2px; }
+.chevron { color: #ccc; font-size: 20px; }
+
+/* === Modal / Overlay === */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px 16px;
+}
+.modal {
+  background: #fff;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 16px;
+  padding: 24px 20px;
+  max-height: 90dvh;
+  overflow-y: auto;
+}
+.modal h2 { font-size: 18px; margin-bottom: 4px; }
+.modal-hint { font-size: 13px; color: #888; margin-bottom: 16px; }
+.role-checkboxes { display: flex; flex-direction: column; gap: 12px; }
+.role-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  padding: 10px 12px;
+  background: #f8f8f8;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.role-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #06c755;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+.btn-primary-sm {
+  padding: 10px 24px;
+  background: #06c755;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-primary-sm:active { background: #05a847; }
+
+/* === Form === */
+.form-fields { display: flex; flex-direction: column; gap: 12px; }
+.form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: #555;
+}
+.form-label input,
+.form-label select,
+.form-label textarea {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+}
+.form-label input:disabled { background: #f0f0f0; color: #999; }
+.form-label textarea { resize: vertical; }
+
+.header-action {
+  margin-left: auto;
+  background: #06c755;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-delete {
+  background: none;
+  border: 1px solid #e53935;
+  color: #e53935;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.btn-delete:active { background: #fbe9e7; }
+
+/* === Debug === */
+.debug-panel {
+  background: #1a1a2e;
+  color: #0f0;
+  padding: 6px 10px;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  word-break: break-all;
+  cursor: pointer;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}

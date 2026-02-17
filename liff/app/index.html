@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智購販賣機</title>
+    <style>
+      #app-fallback { display: none; padding: 20px; font-family: monospace; font-size: 13px; color: red; word-break: break-all; }
+    </style>
+    <script>
+      // 全域錯誤 fallback — Vue 掛掉時至少能看到錯誤
+      window.onerror = function(msg, src, line, col, err) {
+        var el = document.getElementById('app-fallback');
+        if (el) { el.style.display = 'block'; el.textContent = '[JS Error] ' + msg + ' @ ' + src + ':' + line; }
+      };
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="app-fallback"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

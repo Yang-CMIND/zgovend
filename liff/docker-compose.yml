@@ -1,0 +1,34 @@
+services:
+  # ========== LIFF 正式 App (Vue + Vite) ==========
+  app:
+    image: node:22
+    working_dir: /app
+    volumes:
+      - ./app:/app:cached
+    command: bash -lc "npm install && npm run dev"
+    ports:
+      - "127.0.0.1:5174:5174"
+
+  # ========== LIFF Example (Vite demo) ==========
+  examples:
+    image: node:22
+    working_dir: /app
+    volumes:
+      - ./examples/vite:/app:cached
+    environment:
+      - LIFF_PROXY_TARGET=http://api:8787
+    command: bash -lc "npm ci && npm run dev"
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      - api
+
+  # ========== Mock API ==========
+  api:
+    image: node:22
+    working_dir: /app
+    volumes:
+      - ./api:/app:cached
+    command: bash -lc "npm install && npm run dev"
+    ports:
+      - "127.0.0.1:8787:8787"

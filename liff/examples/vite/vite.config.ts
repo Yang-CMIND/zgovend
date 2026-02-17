@@ -5,7 +5,9 @@ import { defineConfig } from 'vite';
 const proxyTarget = process.env.LIFF_PROXY_TARGET || 'http://localhost:8787';
 
 export default defineConfig({
+  base: '/liff/examples/',
   server: {
+    host: '0.0.0.0',
     port: 5173,
     strictPort: true,
 
@@ -14,7 +16,7 @@ export default defineConfig({
     allowedHosts: ['honeypie.zgovend.com'],
 
     proxy: {
-      '/liff': {
+      '/liff/bind': {
         target: proxyTarget,
         changeOrigin: true,
       },
