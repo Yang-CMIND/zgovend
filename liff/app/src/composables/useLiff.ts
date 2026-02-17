@@ -114,6 +114,21 @@ async function init() {
   return initPromise
 }
 
+// Force-refresh roles from DB (no cache)
+async function refreshRoles() {
+  const userId = profile.value?.userId
+  if (!userId) return
+  try {
+    const data = await gql(`query($lineUserId: String!) {
+      user(lineUserId: $lineUserId) { isAdmin operatorRoles { operatorId roles } }
+    }`, { lineUserId: userId })
+    _isAdmin.value = data.user?.isAdmin || false
+    operatorRoles.value = data.user?.operatorRoles || []
+  } catch (e) {
+    console.warn('refreshRoles failed:', e)
+  }
+}
+
 function login() {
   if (DEV_MODE) return
   const baseUrl = window.location.origin + (import.meta.env.BASE_URL || '/')
@@ -149,6 +164,7 @@ export function useLiff() {
     init,
     login,
     logout,
+    refreshRoles,
     liff,
     isReady: readonly(isReady),
     isLoggedIn: readonly(isLoggedIn),

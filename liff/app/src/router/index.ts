@@ -1,4 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { useLiff } from '../composables/useLiff'
+import { gql } from '../composables/useGraphQL'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -59,9 +61,38 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
+  // Clean LIFF token params
   if (to.fullPath.includes('context_token=') || to.fullPath.includes('access_token=')) {
     return '/'
+  }
+
+  // Guard: /replenisher/:vmid — must have replenisher role for VM's operator (or admin)
+  if (to.path.startsWith('/replenisher/')) {
+    const vmid = to.params.vmid as string
+    if (!vmid) return '/'
+
+    const { refreshRoles, operatorRoles, init } = useLiff()
+    await init()
+    // Always fresh-check roles from DB
+    await refreshRoles()
+
+    // Look up VM's operatorId
+    try {
+      const data = await gql(`query($vmid: String!) { vmByVmid(vmid: $vmid) { operatorId } }`, { vmid })
+      const operatorId = data.vmByVmid?.operatorId
+      if (!operatorId) return '/'
+
+      const hasRole = operatorRoles.value.some(
+        or => or.operatorId === operatorId && or.roles.includes('replenisher')
+      )
+      if (!hasRole) {
+        alert('您沒有此機台的巡補員權限')
+        return '/'
+      }
+    } catch {
+      return '/'
+    }
   }
 })
 

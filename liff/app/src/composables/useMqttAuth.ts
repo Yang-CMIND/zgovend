@@ -56,5 +56,70 @@ export function useMqttAuth() {
     })
   }
 
-  return { publishCheckin }
+  /**
+   * Publish 認證成功後，subscribe 等待 gui-replenish 的 nonce 驗證結果
+   * 回傳 { accepted: boolean, error?: string }
+   */
+  function publishAndWaitNonce(
+    brokerUrl: string,
+    hid: string,
+    payload: CheckinPayload,
+    timeoutMs = 15000
+  ): Promise<{ accepted: boolean; error?: string }> {
+    return new Promise((resolve, reject) => {
+      const client = mqtt.connect(brokerUrl, {
+        connectTimeout: 10000,
+        clientId: 'liff-checkin-' + Math.random().toString(16).substring(2, 8),
+      })
+
+      const timer = setTimeout(() => {
+        client.end()
+        reject(new Error('等待機台確認逾時'))
+      }, timeoutMs)
+
+      client.on('connect', () => {
+        const topic = `devices/${hid}/auth`
+
+        // 先 subscribe，再 publish，確保不漏訊息
+        client.subscribe(topic, { qos: 1 }, (err) => {
+          if (err) {
+            clearTimeout(timer)
+            client.end()
+            reject(err)
+            return
+          }
+
+          // Subscribe 成功後 publish 認證結果
+          const msg = JSON.stringify({ ...payload, timestamp: Date.now() })
+          client.publish(topic, msg, { qos: 1 }, (pubErr) => {
+            if (pubErr) {
+              clearTimeout(timer)
+              client.end()
+              reject(pubErr)
+            }
+            // 等待 gui-replenish 的 nonce_verify 回應
+          })
+        })
+      })
+
+      client.on('message', (_topic, message) => {
+        try {
+          const data = JSON.parse(message.toString())
+          if (data.stage === 'nonce_verify' && data.nonce === payload.nonce) {
+            clearTimeout(timer)
+            client.end()
+            resolve({ accepted: data.accepted, error: data.error })
+          }
+        } catch { /* ignore parse errors */ }
+      })
+
+      client.on('error', (err) => {
+        clearTimeout(timer)
+        client.end()
+        reject(err)
+      })
+    })
+  }
+
+  return { publishCheckin, publishAndWaitNonce }
 }

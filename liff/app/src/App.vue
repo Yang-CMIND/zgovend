@@ -6,7 +6,7 @@ import { gql } from './composables/useGraphQL'
 import { useRoute, useRouter } from 'vue-router'
 
 const { init, isReady, isLoggedIn, isInClient, error, login, profile } = useLiff()
-const { publishCheckin } = useMqttAuth()
+const { publishCheckin, publishAndWaitNonce } = useMqttAuth()
 const route = useRoute()
 const router = useRouter()
 const showDebug = ref(false)
@@ -32,7 +32,7 @@ async function handleCheckin(hid: string, nonce: string) {
 
   // 先通知機台：已掃碼，正在查驗身分
   checkinStatus.value = 'processing'
-  try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, status: 'verifying' }) } catch {}
+  try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, status: 'verifying' }) } catch (e) { console.error('[Checkin] MQTT verifying publish failed:', e) }
 
   try {
     // 即時查詢角色（透過 upsertUser 取得最新角色）與機台
@@ -55,11 +55,11 @@ async function handleCheckin(hid: string, nonce: string) {
 
     const user = userData.upsertUser
     const hasReplenisher = user?.operatorRoles?.some(or => or.roles.includes('replenisher'))
-    if (!hasReplenisher && !user?.isAdmin) {
+    if (!hasReplenisher) {
       const errMsg = '您沒有巡補員權限'
+      try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch (e) { console.error('[Checkin] MQTT publish failed:', e) }
       checkinStatus.value = 'error'
       checkinError.value = errMsg
-      try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch {}
       return
     }
 
@@ -68,30 +68,38 @@ async function handleCheckin(hid: string, nonce: string) {
 
     if (!vm) {
       const errMsg = `找不到 HID ${hid} 對應的機台`
+      try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch (e) { console.error('[Checkin] MQTT publish failed:', e) }
       checkinStatus.value = 'error'
       checkinError.value = errMsg
-      try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch {}
       return
     }
 
-    // Publish 認證成功訊息（帶 nonce）
-    await publishCheckin(brokerUrl, hid, {
+    // Publish 認證成功訊息（帶 nonce），並等待 gui-replenish 的 nonce 確認
+    checkinStatus.value = 'processing'
+    const nonceResult = await publishAndWaitNonce(brokerUrl, hid, {
       authenticated: true,
       nonce,
       lineUserId: profile.value.userId,
       displayName: profile.value.displayName,
     })
 
+    if (!nonceResult.accepted) {
+      const errMsg = nonceResult.error || 'QR Code 已過期'
+      checkinStatus.value = 'error'
+      checkinError.value = errMsg
+      return
+    }
+
     checkinStatus.value = 'done'
-    // 導航至巡補作業頁
+    // nonce 確認通過，導航至巡補作業頁
     router.replace(`/replenisher/${vm.vmid}/session`)
   } catch (e: any) {
     const errMsg = e?.message || '簽到失敗'
+    console.error('[Checkin]', e)
+    // 先通知機台端，再更新 UI
+    try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch (mqttErr) { console.error('[Checkin] MQTT publish failed:', mqttErr) }
     checkinStatus.value = 'error'
     checkinError.value = errMsg
-    console.error('[Checkin]', e)
-    // 嘗試通知機台端（MQTT 本身失敗則無法通知）
-    try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch {}
   }
 }
 </script>
