@@ -3,6 +3,9 @@ import { ref, readonly, computed } from 'vue'
 import { gql } from './useGraphQL'
 
 const LIFF_ID = import.meta.env.VITE_LIFF_ID as string
+const DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true'
+const DEV_USER_ID = import.meta.env.VITE_DEV_USER_ID as string
+const DEV_DISPLAY_NAME = import.meta.env.VITE_DEV_DISPLAY_NAME as string || 'Dev User'
 
 const isReady = ref(false)
 const isLoggedIn = ref(false)
@@ -25,6 +28,39 @@ async function init() {
   if (initPromise) return initPromise
   initPromise = (async () => {
     try {
+      // Dev mode: skip LIFF, use mock profile + real DB roles
+      if (DEV_MODE) {
+        console.log('🔧 Dev mode: skipping LIFF login')
+        profile.value = {
+          userId: DEV_USER_ID,
+          displayName: DEV_DISPLAY_NAME,
+          pictureUrl: '',
+        }
+        isLoggedIn.value = true
+        isReady.value = true
+
+        // Fetch real roles from DB via upsert
+        try {
+          const data = await gql(`mutation($input: UpsertUserInput!) {
+            upsertUser(input: $input) { lineUserId isAdmin operatorRoles { operatorId roles } }
+          }`, {
+            input: {
+              lineUserId: DEV_USER_ID,
+              displayName: DEV_DISPLAY_NAME,
+              pictureUrl: '',
+            }
+          })
+          _isAdmin.value = data.upsertUser?.isAdmin || false
+          operatorRoles.value = data.upsertUser?.operatorRoles || []
+        } catch (e) {
+          console.warn('Dev mode: upsertUser failed, using full access fallback')
+          _isAdmin.value = true
+          operatorRoles.value = []
+        }
+        return
+      }
+
+      // Production: normal LIFF flow
       if (!LIFF_ID) {
         error.value = '缺少 VITE_LIFF_ID 環境變數'
         return
@@ -79,11 +115,16 @@ async function init() {
 }
 
 function login() {
+  if (DEV_MODE) return
   const baseUrl = window.location.origin + (import.meta.env.BASE_URL || '/')
   liff.login({ redirectUri: baseUrl })
 }
 
 function logout() {
+  if (DEV_MODE) {
+    location.reload()
+    return
+  }
   liff.logout()
   if (liff.isInClient()) {
     liff.closeWindow()
