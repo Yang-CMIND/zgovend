@@ -33,7 +33,12 @@ const router = createRouter({
         { path: 'preset-stock/:id', name: 'operator-preset-stock-edit', component: () => import('../views/operator/PresetStockEdit.vue') },
       ],
     },
-    // === 巡補員（帶 vmid）===
+    // === 巡補員 ===
+    {
+      path: '/replenisher/picklist',
+      name: 'replenisher-picklist-global',
+      component: () => import('../views/replenisher/Picklist.vue'),
+    },
     {
       path: '/replenisher/:vmid',
       children: [

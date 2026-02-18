@@ -1,110 +1,15 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useLiff } from './composables/useLiff'
-import { useMqttAuth } from './composables/useMqttAuth'
-import { gql } from './composables/useGraphQL'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 
 const { init, isReady, isLoggedIn, isInClient, error, login, profile } = useLiff()
-const { publishCheckin, publishAndWaitNonce } = useMqttAuth()
 const route = useRoute()
-const router = useRouter()
 const showDebug = ref(false)
-const checkinStatus = ref('')  // '', 'processing', 'done', 'error'
-const checkinError = ref('')
 
 onMounted(async () => {
   await init()
-
-  // 攔截機台簽到 action
-  const params = new URLSearchParams(window.location.search)
-  const action = params.get('action')
-  const hid = params.get('hid')
-  const nonce = params.get('nonce')
-
-  if (action === 'checkin' && hid && nonce && isLoggedIn.value && profile.value) {
-    await handleCheckin(hid, nonce)
-  }
 })
-
-async function handleCheckin(hid: string, nonce: string) {
-  const brokerUrl = `wss://${window.location.host}/mqtt`
-
-  // 先通知機台：已掃碼，正在查驗身分
-  checkinStatus.value = 'processing'
-  try { await publishCheckin(brokerUrl, hid, { nonce, status: 'verifying' }) } catch (e) { console.error('[Checkin] MQTT verifying publish failed:', e) }
-
-  try {
-    // 即時查詢角色（透過 upsertUser 取得最新角色）與機台
-    const [userData, vmData] = await Promise.all([
-      gql<{ upsertUser: { isAdmin: boolean, operatorRoles: Array<{ operatorId: string, roles: string[] }> } }>(
-        `mutation($input: UpsertUserInput!) {
-          upsertUser(input: $input) { isAdmin operatorRoles { operatorId roles } }
-        }`, {
-          input: {
-            lineUserId: profile.value.userId,
-            displayName: profile.value.displayName,
-            pictureUrl: profile.value.pictureUrl || '',
-          }
-        }
-      ),
-      gql<{ vms: Array<{ vmid: string, hidCode: string }> }>(
-        `{ vms(limit: 500) { vmid hidCode operatorId } }`
-      ),
-    ])
-
-    const user = userData.upsertUser
-    const vm = (vmData.vms as Array<{ vmid: string; hidCode: string; operatorId: string }>)
-      .find(v => v.hidCode === hid)
-
-    if (!vm) {
-      const errMsg = `找不到 HID ${hid} 對應的機台`
-      try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch (e) { console.error('[Checkin] MQTT publish failed:', e) }
-      checkinStatus.value = 'error'
-      checkinError.value = errMsg
-      return
-    }
-
-    // 檢查該 user 是否為此機台所屬營運商的 replenisher
-    const hasReplenisher = user?.operatorRoles?.some(
-      or => or.operatorId === vm.operatorId && or.roles.includes('replenisher')
-    )
-    if (!hasReplenisher) {
-      const errMsg = '您沒有此機台的巡補員權限'
-      try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch (e) { console.error('[Checkin] MQTT publish failed:', e) }
-      checkinStatus.value = 'error'
-      checkinError.value = errMsg
-      return
-    }
-
-    // Publish 認證成功訊息（帶 nonce），並等待 gui-replenish 的 nonce 確認
-    checkinStatus.value = 'processing'
-    const nonceResult = await publishAndWaitNonce(brokerUrl, hid, {
-      authenticated: true,
-      nonce,
-      lineUserId: profile.value.userId,
-      displayName: profile.value.displayName,
-    })
-
-    if (!nonceResult.accepted) {
-      const errMsg = nonceResult.error || 'QR Code 已過期'
-      checkinStatus.value = 'error'
-      checkinError.value = errMsg
-      return
-    }
-
-    checkinStatus.value = 'done'
-    // nonce 確認通過，導航至巡補作業頁
-    router.replace(`/replenisher/${vm.vmid}/session`)
-  } catch (e: any) {
-    const errMsg = e?.message || '簽到失敗'
-    console.error('[Checkin]', e)
-    // 先通知機台端，再更新 UI
-    try { await publishCheckin(brokerUrl, hid, { authenticated: false, nonce, error: errMsg }) } catch (mqttErr) { console.error('[Checkin] MQTT publish failed:', mqttErr) }
-    checkinStatus.value = 'error'
-    checkinError.value = errMsg
-  }
-}
 </script>
 
 <template>
@@ -134,18 +39,6 @@ async function handleCheckin(hid: string, nonce: string) {
       <h1>智購販賣機</h1>
       <p>請先登入 LINE 帳號</p>
       <button class="btn-primary" @click="login()">登入</button>
-    </div>
-
-    <!-- 機台簽到處理中 -->
-    <div v-else-if="checkinStatus === 'processing'" class="loading">
-      <p>正在簽到中…</p>
-    </div>
-
-    <!-- 機台簽到失敗 -->
-    <div v-else-if="checkinStatus === 'error'" class="error-page">
-      <h2>簽到失敗</h2>
-      <p>{{ checkinError }}</p>
-      <button class="btn-primary" @click="router.push('/')">返回首頁</button>
     </div>
 
     <!-- 已登入 → 路由 -->
