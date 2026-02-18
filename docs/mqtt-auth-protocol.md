@@ -7,7 +7,7 @@
 | 角色 | 說明 |
 |------|------|
 | **gui-replenish** | 販賣機本地瀏覽器，顯示 QR Code，訂閱 MQTT 等待認證結果，驗證 nonce 後回覆確認 |
-| **LIFF** | 手機 LINE 內的 Web App，掃碼後執行身分查驗並發布結果，等待機台 nonce 確認 |
+| **LIFF** | 手機 LINE 內的 Web App，透過 `liff.scanCodeV2()` 掃描機台 QR Code，解析後執行身分查驗並發布結果，等待機台 nonce 確認 |
 | **MQTT Broker** | 後端 WSS broker（如 `wss://honeypie.zgovend.com:8443/mqtt`） |
 
 ## MQTT Topic
@@ -23,11 +23,17 @@ devices/{hid}/auth
 ## QR Code 格式
 
 ```
-https://liff.line.me/{LIFF_ID}?action=checkin&hid={hid}&nonce={nonce}
+{LIFF_ID}:{hid}:{nonce}
 ```
 
+短碼格式，以冒號分隔三個欄位。由 LIFF app 透過 `liff.scanCodeV2()` 掃描後解析。
+
+- `LIFF_ID`：LINE LIFF app ID（如 `2009020003-RmX9NLbV`）
+- `hid`：機台硬體 ID（MAC address 去除冒號，如 `50af7343f553`）
 - `nonce`：gui-replenish 產生的 32 字元 hex 一次性驗證碼（`crypto.getRandomValues(Uint8Array(16))`）
 - 每次產生新 QR Code 時 nonce 都不同，舊 QR Code 自動失效
+
+LIFF app 掃碼解析後，等同於過去的 URL 方式帶入 `hid` + `nonce`，直接呼叫 `handleCheckin(hid, nonce)` 進入認證流程。
 
 ## 訊息格式（JSON）
 
@@ -185,9 +191,9 @@ LIFF publish 認證成功訊息後，**不可直接導航至巡補頁面**。必
 gui-replenish                    MQTT Broker                     LIFF (手機)
      |                               |                               |
      |-- subscribe devices/{hid}/auth -->|                           |
-     |   顯示 QR Code (含 nonce)      |                               |
+     |   顯示 QR Code (短碼含 nonce)   |                               |
      |                               |                               |
-     |                               |          使用者掃碼，LIFF 開啟  |
+     |                               |  使用者開啟 LIFF，scanCodeV2 掃碼|
      |                               |                               |
      |                               |<-- publish: verifying ---------|
      |<-- message: verifying --------|                               |
