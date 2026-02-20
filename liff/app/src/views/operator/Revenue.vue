@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { gql } from '../../composables/useGraphQL'
 import PageHeader from '../../components/PageHeader.vue'
 
+// ECharts tree-shaken imports
+import { use } from 'echarts/core'
+import { BarChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, DataZoomComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import VChart from 'vue-echarts'
+
+use([CanvasRenderer, BarChart, GridComponent, TooltipComponent, DataZoomComponent])
+
 const route = useRoute()
+const router = useRouter()
 const operatorId = route.params.operatorId as string
 const operatorName = ref(operatorId)
 
@@ -63,7 +73,7 @@ async function loadData() {
       if (vm.hidCode) map.set(vm.hidCode, vm)
     }
     vmMap.value = map
-    await loadTransactions()
+    await Promise.all([loadTransactions(), loadDailyRevenue()])
   } catch (e: any) {
     console.error('loadData failed:', e)
   } finally {
@@ -158,6 +168,12 @@ function toggleDevice(hidCode: string) {
   if (idx >= 0) selectedDevices.value.splice(idx, 1)
   else selectedDevices.value.push(hidCode)
   loadTransactions()
+  loadDailyRevenue()
+}
+
+function onFilterChange() {
+  loadTransactions()
+  loadDailyRevenue()
 }
 
 const totalRevenue = computed(() =>
@@ -169,6 +185,132 @@ const totalRevenue = computed(() =>
 const successCount = computed(() =>
   transactions.value.filter(t => t.dispenseSuccess).length
 )
+
+// Daily revenue chart data (from projector-aggregated daily_stats)
+interface DailyPoint { date: string; revenue: number }
+
+const dailyRevenue = ref<DailyPoint[]>([])
+
+async function loadDailyRevenue() {
+  try {
+    // daily_stats stores MQTT deviceId which could be hidCode or vmid
+    // Send both vmid and hidCode to cover all cases
+    let deviceIds: string[]
+    if (selectedDevices.value.length > 0) {
+      // selectedDevices contains hidCodes; also include matching vmids
+      const selected = new Set(selectedDevices.value)
+      deviceIds = [...selectedDevices.value]
+      for (const vm of vmList.value) {
+        if (selected.has(vm.hidCode) && vm.vmid && !selected.has(vm.vmid)) {
+          deviceIds.push(vm.vmid)
+        }
+      }
+    } else {
+      deviceIds = vmList.value.flatMap(v => [v.hidCode, v.vmid].filter(Boolean))
+    }
+    if (deviceIds.length === 0) { dailyRevenue.value = []; return }
+
+    const data = await gql(`query($deviceIds: [String!], $from: String, $to: String) {
+      dailyRevenue(deviceIds: $deviceIds, from: $from, to: $to) { date revenue txCount successCount }
+    }`, { deviceIds, from: dateFrom.value, to: dateTo.value })
+
+    const statsMap = new Map<string, number>()
+    for (const pt of (data.dailyRevenue || [])) {
+      statsMap.set(pt.date, pt.revenue)
+    }
+
+    // Fill missing dates
+    const result: DailyPoint[] = []
+    if (dateFrom.value && dateTo.value) {
+      const cur = new Date(dateFrom.value + 'T00:00:00+08:00')
+      const end = new Date(dateTo.value + 'T00:00:00+08:00')
+      while (cur <= end) {
+        const key = cur.toISOString().slice(0, 10)
+        result.push({ date: key, revenue: statsMap.get(key) || 0 })
+        cur.setDate(cur.getDate() + 1)
+      }
+    }
+    dailyRevenue.value = result
+  } catch (e: any) {
+    console.error('loadDailyRevenue failed:', e)
+  }
+}
+
+// ECharts option
+const chartOption = computed(() => {
+  const points = dailyRevenue.value
+  if (points.length === 0) return null
+  const dates = points.map(p => p.date.slice(5)) // MM-DD
+  const values = points.map(p => p.revenue)
+  const showZoom = points.length > 14
+
+  return {
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: any) => {
+        const d = params[0]
+        return `<b>${d.name}</b><br/>營業額：$${d.value.toLocaleString()}`
+      },
+      textStyle: { fontSize: 13 },
+    },
+    grid: {
+      left: 45,
+      right: 12,
+      top: 10,
+      bottom: showZoom ? 56 : 28,
+      containLabel: false,
+    },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      axisTick: { show: false },
+      axisLabel: {
+        fontSize: 10,
+        color: '#999',
+        interval: points.length <= 15 ? 0 : Math.floor(points.length / 8),
+        rotate: points.length > 20 ? 45 : 0,
+      },
+      axisLine: { lineStyle: { color: '#eee' } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: {
+        fontSize: 10,
+        color: '#aaa',
+        formatter: (v: number) => v >= 1000 ? (v / 1000) + 'k' : String(v),
+      },
+      splitLine: { lineStyle: { color: '#f5f5f5' } },
+      axisLine: { show: false },
+    },
+    series: [{
+      type: 'bar',
+      data: values,
+      itemStyle: {
+        color: '#4a90d9',
+        borderRadius: [3, 3, 0, 0],
+      },
+      emphasis: {
+        itemStyle: { color: '#e67e22' },
+      },
+      barMaxWidth: 24,
+    }],
+    ...(showZoom ? {
+      dataZoom: [{
+        type: 'slider',
+        start: Math.max(0, 100 - (14 / points.length * 100)),
+        end: 100,
+        height: 22,
+        bottom: 4,
+        borderColor: '#ddd',
+        fillerColor: 'rgba(74,144,217,0.15)',
+        handleSize: '60%',
+        textStyle: { fontSize: 10 },
+      }, {
+        type: 'inside',
+      }]
+    } : {}),
+  }
+})
 
 onMounted(async () => {
   initDateRange()
@@ -195,12 +337,12 @@ onMounted(async () => {
         <div class="date-row">
           <label class="date-field">
             <span>起</span>
-            <input type="date" v-model="dateFrom" @change="loadTransactions" />
+            <input type="date" v-model="dateFrom" @change="onFilterChange" />
           </label>
           <span class="date-sep">～</span>
           <label class="date-field">
             <span>迄</span>
-            <input type="date" v-model="dateTo" @change="loadTransactions" />
+            <input type="date" v-model="dateTo" @change="onFilterChange" />
           </label>
         </div>
         <!-- 機台多選 -->
@@ -231,10 +373,16 @@ onMounted(async () => {
         </div>
       </div>
 
+      <!-- 每日營業額柱狀圖 (ECharts) -->
+      <div v-if="chartOption" class="chart-section">
+        <div class="chart-title">每日營業額</div>
+        <v-chart :option="chartOption" autoresize class="revenue-chart" />
+      </div>
+
       <div v-if="transactions.length === 0" class="placeholder">尚無交易紀錄</div>
 
       <ul v-else class="tx-list">
-        <li v-for="tx in transactions" :key="tx.txno" class="tx-item">
+        <li v-for="tx in transactions" :key="tx.txno" class="tx-item" @click="router.push(`/operator/${operatorId}/transaction/${tx.txno}`)">
           <div class="tx-row-main">
             <span class="tx-time">{{ formatTime(tx.startedAt) }}</span>
             <span class="tx-price">${{ tx.price || 0 }}</span>
@@ -333,6 +481,7 @@ onMounted(async () => {
 .tx-item {
   padding: 10px 16px;
   border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
 }
 .tx-row-main {
   display: flex;
@@ -364,4 +513,20 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 .tx-device { margin-left: auto; color: #aaa; }
+
+/* ECharts */
+.chart-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+.chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+.revenue-chart {
+  width: 100%;
+  height: 220px;
+}
 </style>

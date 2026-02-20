@@ -198,7 +198,7 @@ onMounted(loadData)
 <template>
   <div class="page">
     <header class="header">
-      <h1>智購販賣機</h1>
+      <h1>智購小幫手</h1>
       <div v-if="profile" class="user-info">
         <img v-if="profile.pictureUrl" :src="profile.pictureUrl" class="avatar" />
         <span>{{ profile.displayName }}</span>
@@ -208,6 +208,16 @@ onMounted(loadData)
     <nav class="role-nav">
       <!-- 消費者 -->
       <div class="section-header">🛒 消費者</div>
+      <router-link to="/consumer/shop" class="role-card role-card-sub">
+        <span class="role-icon">🛒</span>
+        <span class="role-label">線上訂購</span>
+        <span class="role-desc">瀏覽商品、加入購物車</span>
+      </router-link>
+      <router-link to="/consumer/orders" class="role-card role-card-sub">
+        <span class="role-icon">📦</span>
+        <span class="role-label">我的訂單</span>
+        <span class="role-desc">查看訂單與取貨碼</span>
+      </router-link>
       <router-link to="/consumer/tickets/new" class="role-card role-card-sub">
         <span class="role-icon">📝</span>
         <span class="role-label">問題回報</span>
@@ -287,6 +297,11 @@ onMounted(loadData)
           <span class="role-icon">🏭</span>
           <span class="role-label">機台 <span class="count-badge">{{ adminCounts.vms }}</span></span>
           <span class="role-desc">機台設定與狀態</span>
+        </router-link>
+        <router-link to="/admin/online-orders" class="role-card role-card-sub">
+          <span class="role-icon">📦</span>
+          <span class="role-label">取貨單管理</span>
+          <span class="role-desc">查看與處理線上訂單</span>
         </router-link>
       </template>
     </nav>

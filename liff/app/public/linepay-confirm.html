@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>LINE Pay 確認中…</title></head>
+<body>
+<p>付款確認中，請稍候…</p>
+<script>
+var params = new URLSearchParams(window.location.search);
+var tid = params.get('transactionId') || '';
+window.location.replace('/liff/#/consumer/linepay/confirm?transactionId=' + tid);
+</script>
+</body>
+</html>

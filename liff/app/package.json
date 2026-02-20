@@ -11,8 +11,11 @@
   "dependencies": {
     "@line/liff": "^2.27.3",
     "@rollup/rollup-linux-x64-gnu": "^4.57.1",
+    "echarts": "^6.0.0",
     "mqtt": "^5.15.0",
+    "qrcode": "^1.5.4",
     "vue": "^3.5.25",
+    "vue-echarts": "^8.0.1",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {

@@ -8,6 +8,7 @@ import PageHeader from '../../components/PageHeader.vue'
     <nav class="menu">
       <router-link to="/consumer/tickets/new" class="menu-item">📝 問題回報</router-link>
       <router-link to="/consumer/tickets" class="menu-item">📋 我的問題單</router-link>
+      <router-link to="/consumer/orders" class="menu-item">📦 我的訂單</router-link>
     </nav>
   </div>
 </template>

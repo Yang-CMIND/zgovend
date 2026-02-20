@@ -36,7 +36,7 @@ onMounted(async () => {
 
     <!-- 未登入（僅外部瀏覽器會看到） -->
     <div v-else-if="!isLoggedIn" class="login-page">
-      <h1>智購販賣機</h1>
+      <h1>智購小幫手</h1>
       <p>請先登入 LINE 帳號</p>
       <button class="btn-primary" @click="login()">登入</button>
     </div>

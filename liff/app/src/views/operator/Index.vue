@@ -26,6 +26,8 @@ onMounted(async () => {
       <router-link :to="`/operator/${operatorId}/products`" class="menu-item">📦 商品主檔</router-link>
       <router-link :to="`/operator/${operatorId}/machine-status`" class="menu-item">📡 機台狀態</router-link>
       <router-link :to="`/operator/${operatorId}/revenue`" class="menu-item">💰 營收與訂單</router-link>
+      <router-link :to="`/operator/${operatorId}/tickets`" class="menu-item">🎫 消費者問題</router-link>
+      <router-link :to="`/operator/${operatorId}/online-orders`" class="menu-item">📦 線上訂單</router-link>
       <router-link :to="`/operator/${operatorId}/preset-stock`" class="menu-item">📋 庫存預約設定</router-link>
     </nav>
   </div>

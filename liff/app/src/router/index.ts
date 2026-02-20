@@ -18,6 +18,10 @@ const router = createRouter({
         { path: 'tickets', name: 'consumer-tickets', component: () => import('../views/consumer/TicketList.vue') },
         { path: 'tickets/new', name: 'consumer-ticket-new', component: () => import('../views/consumer/TicketNew.vue') },
         { path: 'tickets/:id', name: 'consumer-ticket-detail', component: () => import('../views/consumer/TicketDetail.vue') },
+        { path: 'shop', name: 'consumer-shop', component: () => import('../views/consumer/Shop.vue') },
+        { path: 'cart', name: 'consumer-cart', component: () => import('../views/consumer/Cart.vue') },
+        { path: 'orders', name: 'consumer-orders', component: () => import('../views/consumer/OrderList.vue') },
+        { path: 'orders/:id', name: 'consumer-order-detail', component: () => import('../views/consumer/OrderDetail.vue') },
       ],
     },
     // === 營運者（帶 operatorId）===
@@ -29,6 +33,9 @@ const router = createRouter({
         { path: 'machine-status', name: 'operator-machine-status', component: () => import('../views/operator/MachineStatus.vue') },
         { path: 'machines/:id', name: 'operator-machine-detail', component: () => import('../views/operator/MachineDetail.vue') },
         { path: 'revenue', name: 'operator-revenue', component: () => import('../views/operator/Revenue.vue') },
+        { path: 'transaction/:txno', name: 'TransactionDetail', component: () => import('../views/operator/TransactionDetail.vue') },
+        { path: 'tickets', name: 'operator-tickets', component: () => import('../views/operator/Tickets.vue') },
+        { path: 'online-orders', name: 'operator-online-orders', component: () => import('../views/operator/OnlineOrders.vue') },
         { path: 'preset-stock', name: 'operator-preset-stock', component: () => import('../views/operator/PresetStockList.vue') },
         { path: 'preset-stock/:id', name: 'operator-preset-stock-edit', component: () => import('../views/operator/PresetStockEdit.vue') },
       ],
@@ -56,6 +63,7 @@ const router = createRouter({
         { path: 'operators', name: 'admin-operators', component: () => import('../views/admin/OperatorList.vue') },
         { path: 'hids', name: 'admin-hids', component: () => import('../views/admin/HidList.vue') },
         { path: 'machines', name: 'admin-machines', component: () => import('../views/admin/MachineList.vue') },
+        { path: 'online-orders', name: 'admin-online-orders', component: () => import('../views/admin/OnlineOrders.vue') },
       ],
     },
     // Catch-all
@@ -73,7 +81,8 @@ router.beforeEach(async (to) => {
   }
 
   // Guard: /replenisher/:vmid — must have replenisher role for VM's operator (or admin)
-  if (to.path.startsWith('/replenisher/')) {
+  // Skip guard for global picklist route (no vmid)
+  if (to.path.startsWith('/replenisher/') && to.name !== 'replenisher-picklist-global') {
     const vmid = to.params.vmid as string
     if (!vmid) return '/'
 
