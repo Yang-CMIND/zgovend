@@ -1,4 +1,106 @@
-# MQTT 巡補員簽到認證協議
+# 認證與存取控制協議
+
+本文件涵蓋兩大認證機制：
+1. **GraphQL API 存取控制** — LIFF App 與 gui-replenish 的 API 認證 + RBAC
+2. **MQTT 巡補員簽到認證** — gui-replenish 與 LIFF 透過 MQTT 的現場掃碼認證
+
+---
+
+# 第一部分：GraphQL API 存取控制
+
+## 概述
+
+GraphQL API 支援兩種 client 存取，統一透過 LINE 身份驗證：
+
+| Client | 環境 | 認證方式 |
+|--------|------|----------|
+| LIFF App (智購小幫手) | LINE 內瀏覽器 | LINE Access Token |
+| gui-replenish (巡補員平板) | 販賣機現場平板瀏覽器 | MQTT 簽到認證（見第二部分）→ GraphQL 存取由 LIFF 端代理查詢 |
+
+兩者最終都解析為同一個 `user` 物件，RBAC 邏輯完全共用。
+
+### 三層防護
+
+| 層 | 機制 | 說明 |
+|----|------|------|
+| **Layer 1** | Nginx referer 白名單 | 擋掉非 LIFF/本站的直接 API 存取 |
+| **Layer 2** | LINE Access Token 驗證 | 確認是 LINE 登入用戶 |
+| **Layer 3** | RBAC resolver 權限檢查 | 用戶只能存取自己權限內的資料 |
+
+## 認證方式：LINE Access Token（LIFF App）
+
+### 流程
+1. 用戶透過 LIFF 開啟 App，自動取得 LINE access token
+2. 前端每次 GraphQL 請求帶 `Authorization: Bearer <LINE access token>`
+3. 後端驗證 token（呼叫 LINE API `oauth2/v2.1/verify` + `v2/profile`）
+4. 驗證通過 → 從 MongoDB `users` collection 查出 `isAdmin`、`operatorRoles`
+5. 注入 `context.user` 供 resolver RBAC 使用
+6. Token cache 5 分鐘，避免重複呼叫 LINE API
+
+### 後端判斷邏輯
+```
+Authorization: Bearer <token>
+→ 嘗試 LINE verify API
+→ 成功 → 取得 user profile + DB 角色 → context.user
+→ 失敗 → user = null（未認證）
+```
+
+## gui-replenish 的 GraphQL 存取
+
+gui-replenish 不直接存取 GraphQL API。其認證流程透過 MQTT 巡補員簽到（見第二部分）：
+1. gui-replenish 顯示 QR Code
+2. 巡補員用 LIFF App 掃碼
+3. LIFF 端驗證身份後，透過 MQTT 通知 gui-replenish 認證結果
+4. LIFF 端在簽到流程中代理 GraphQL 角色查詢（帶 LINE token）
+
+gui-replenish 所需的資料操作由 LIFF 端 GraphQL 查詢後透過 MQTT 傳遞。
+
+## RBAC 權限模型
+
+不論認證方式，最終 `context.user` 結構相同：
+
+```ts
+interface User {
+  lineUserId: string
+  displayName: string
+  isAdmin: boolean
+  operatorRoles: Array<{
+    operatorId: string
+    roles: string[]  // 'operator' | 'replenisher'
+  }>
+}
+```
+
+### 權限分級
+
+| 層級 | 可存取 | 範例 |
+|------|--------|------|
+| **公開** | 不需認證 | shopProducts, operators, products, vms |
+| **已登入** | 任何認證用戶 | myOrders, myTickets, createOnlineOrder |
+| **營運商** | isAdmin 或 operatorRoles 含該 operatorId | operatorOnlineOrders, operatorTickets, dailyRevenue |
+| **巡補員** | 營運商 + role 含 'replenisher' | vmInventory, replenishPicklist, updateVmInventory |
+| **管理員** | isAdmin: true | users, allOnlineOrders, upsertUser |
+
+### Auth Helper Functions
+
+```js
+requireAuth(user)                          // 已登入
+requireAdmin(user)                         // 管理員
+requireOperatorAccess(user, operatorId)    // 營運商存取
+requireOperatorRole(user, operatorId, role) // 特定角色
+```
+
+## 實作狀態
+
+- [x] Nginx referer 白名單（honeypie.zgovend.com, *.line.me）
+- [x] LINE access token 驗證（auth.js）
+- [x] Token cache（5 分鐘）
+- [x] RBAC resolver 權限檢查（7 個 schema 檔案）
+- [x] LIFF App 前端自動帶 token（useGraphQL.ts）
+
+---
+
+# 第二部分：MQTT 巡補員簽到認證協議
 
 ## 概述
 
@@ -221,12 +323,17 @@ gui-replenish                    MQTT Broker                     LIFF (手機)
      |   進入巡補模式                  |          導航至巡補 session     |
 ```
 
-## 相關檔案
+---
 
-| 檔案 | 角色 |
+# 相關檔案
+
+| 檔案 | 說明 |
 |------|------|
+| `/home/mozo/ebus-eventlog/api/src/auth.js` | GraphQL 認證模組（LINE token 驗證 + cache） |
+| `/home/mozo/ebus-eventlog/api/src/index.js` | GraphQL server + context 注入 |
+| `/home/mozo/zgovend/liff/app/src/composables/useGraphQL.ts` | LIFF App GraphQL helper（帶 token） |
+| `/home/mozo/zgovend/liff/app/src/composables/useMqttAuth.ts` | MQTT publish + nonce 等待工具函式 |
+| `/home/mozo/zgovend/liff/app/src/composables/useLiff.ts` | LINE LIFF 登入、角色管理、refreshRoles |
 | `gui-replenish/src/App.vue` | 機台端：QR 產生、MQTT 訂閱、nonce 驗證、接收認證結果 |
-| `liff/app/src/App.vue` | 手機端：scanCodeV2 掃碼、nonce 提交、角色查驗、MQTT 發布 |
-| `liff/app/src/composables/useMqttAuth.ts` | MQTT publish + nonce 等待工具函式 |
-| `liff/app/src/composables/useGraphQL.ts` | GraphQL client |
-| `liff/app/src/composables/useLiff.ts` | LINE LIFF 登入、角色管理、refreshRoles |
+| `/home/mozo/docker/nginx-line/conf.d/line.conf` | Nginx referer 白名單 |
+| MongoDB `users` collection | 用戶身份、isAdmin、operatorRoles |
