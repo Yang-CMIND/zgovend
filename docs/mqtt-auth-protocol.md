@@ -15,7 +15,7 @@ GraphQL API 支援兩種 client 存取，統一透過 LINE 身份驗證：
 | Client | 環境 | 認證方式 |
 |--------|------|----------|
 | LIFF App (智購小幫手) | LINE 內瀏覽器 | LINE Access Token |
-| gui-replenish (巡補員平板) | 販賣機現場平板瀏覽器 | MQTT 簽到認證（見第二部分）→ GraphQL 存取由 LIFF 端代理查詢 |
+| gui-replenish (巡補員平板) | 販賣機現場平板瀏覽器 | MQTT 簽到認證（見第二部分）→ 取得 LINE Access Token → 直接存取 GraphQL |
 
 兩者最終都解析為同一個 `user` 物件，RBAC 邏輯完全共用。
 
@@ -47,13 +47,24 @@ Authorization: Bearer <token>
 
 ## gui-replenish 的 GraphQL 存取
 
-gui-replenish 不直接存取 GraphQL API。其認證流程透過 MQTT 巡補員簽到（見第二部分）：
+gui-replenish 透過 MQTT 簽到取得 LINE Access Token 後，直接存取 GraphQL API：
 1. gui-replenish 顯示 QR Code
 2. 巡補員用 LIFF App 掃碼
-3. LIFF 端驗證身份後，透過 MQTT 通知 gui-replenish 認證結果
-4. LIFF 端在簽到流程中代理 GraphQL 角色查詢（帶 LINE token）
+3. LIFF 端驗證身份後，透過 MQTT 傳送認證結果 **+ LINE Access Token**
+4. gui-replenish 儲存 token，後續 GraphQL 請求帶 `Authorization: Bearer <token>`
 
-gui-replenish 所需的資料操作由 LIFF 端 GraphQL 查詢後透過 MQTT 傳遞。
+### 流程
+```
+MQTT 簽到成功 → gui-replenish 收到 accessToken
+→ 儲存至 authAccessToken
+→ GraphQL fetch 自動帶 Authorization: Bearer <token>
+→ 後端以同一套 LINE token 驗證 + RBAC 檢查
+```
+
+### 安全性
+- MQTT broker 使用 WSS (TLS) 加密傳輸
+- topic `devices/{hid}/auth` 為 device-specific，非公開廣播
+- LINE access token 有效期長（一般 30 天），巡補員單次作業通常數十分鐘，足夠使用
 
 ## RBAC 權限模型
 
@@ -97,6 +108,8 @@ requireOperatorRole(user, operatorId, role) // 特定角色
 - [x] Token cache（5 分鐘）
 - [x] RBAC resolver 權限檢查（7 個 schema 檔案）
 - [x] LIFF App 前端自動帶 token（useGraphQL.ts）
+- [ ] LIFF 簽到成功時傳送 accessToken（Home.vue handleCheckin）
+- [x] gui-replenish 儲存 accessToken 並帶入 GraphQL 請求（App.vue）
 
 ---
 
@@ -187,6 +200,7 @@ Nonce 通過後，LIFF 查詢 GraphQL 角色查驗通過（使用者具備 reple
   "authenticated": true,
   "lineUserId": "U1234567890abcdef",
   "displayName": "王小明",
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
   "timestamp": 1739876543210
 }
 ```
@@ -250,7 +264,7 @@ LIFF 的 `handleCheckin` 流程，**每一步失敗都必須 publish 失敗訊�
 |----------|-----------|-----------|------|
 | `stage === 'nonce_submit'` | **嚴格檢查** | ✅ publish `nonce_verify` | 匹配→顯示查驗中；不匹配→顯示錯誤 |
 | `stage === 'nonce_verify'` | — | 忽略 | 自己 publish 的回覆，不處理 |
-| `authenticated === true` | **不檢查** | 不回覆 | nonce 已在第一階段驗過，直接進入巡補模式 |
+| `authenticated === true` | **不檢查** | 不回覆 | nonce 已在第一階段驗過，儲存 `accessToken`，進入巡補模式 |
 | `authenticated === false` + error | **不檢查** | 不回覆 | 顯示錯誤 + 3 秒後 regenerate QR |
 
 ### 規則 3：nonce 不符視為認證失敗
@@ -319,8 +333,14 @@ gui-replenish                    MQTT Broker                     LIFF (手機)
      |                               |                               |
      |                               |    ┌─ 角色查驗成功 ──────────┐  |
      |                               |<-- | publish: authenticated  |--|
+     |                               |    | + accessToken           |  |
      |<-- message: authenticated ----|    └─────────────────────────┘  |
-     |   進入巡補模式                  |          導航至巡補 session     |
+     |   儲存 accessToken             |          導航至巡補 session     |
+     |   進入巡補模式                  |                               |
+     |                               |                               |
+     |   ─── 巡補模式中 ───           |                               |
+     |   GraphQL fetch 帶             |                               |
+     |   Authorization: Bearer token  |                               |
 ```
 
 ---
