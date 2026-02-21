@@ -81,6 +81,7 @@ export function useMqttAuth() {
       authenticated: boolean
       lineUserId?: string
       displayName?: string
+      accessToken?: string
       error?: string
     }
   ): Promise<void> {

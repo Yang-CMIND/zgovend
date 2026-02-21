@@ -108,7 +108,7 @@ requireOperatorRole(user, operatorId, role) // 特定角色
 - [x] Token cache（5 分鐘）
 - [x] RBAC resolver 權限檢查（7 個 schema 檔案）
 - [x] LIFF App 前端自動帶 token（useGraphQL.ts）
-- [ ] LIFF 簽到成功時傳送 accessToken（Home.vue handleCheckin）
+- [x] LIFF 簽到成功時傳送 accessToken（Home.vue handleCheckin）
 - [x] gui-replenish 儲存 accessToken 並帶入 GraphQL 請求（App.vue）
 
 ---

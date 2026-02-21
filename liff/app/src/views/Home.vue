@@ -179,6 +179,7 @@ async function handleCheckin(hid: string, nonce: string) {
       authenticated: true,
       lineUserId: profile.value.userId,
       displayName: profile.value.displayName,
+      accessToken: liff.getAccessToken() || undefined,
     }) } catch (e) { console.error('[Checkin] MQTT publish failed:', e) }
 
     checkinStatus.value = 'done'
