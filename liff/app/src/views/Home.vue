@@ -7,7 +7,7 @@ const { submitNonceAndWait, publishAuthResult } = useMqttAuth()
 import { gql } from '../composables/useGraphQL'
 
 const router = useRouter()
-const { profile, logout, isAdmin, isOperator, isReplenisher, operatorIdsWithRole, liff } = useLiff()
+const { profile, logout, isAdmin, isOperator, isReplenisher, operatorIdsWithRole, liff, refreshRoles } = useLiff()
 // useMqttAuth destructured above
 
 const LIFF_ID = import.meta.env.VITE_LIFF_ID as string
@@ -116,7 +116,7 @@ async function startReplenishScan() {
 }
 
 async function handleCheckin(hid: string, nonce: string) {
-  const brokerUrl = `wss://${window.location.host}/mqtt`
+  const brokerUrl = import.meta.env.VITE_MQTT_BROKER_URL || `wss://${window.location.host}/mqtt`
 
   // 第一階段：提交 nonce，等待 gui-replenish 驗證
   checkinStatus.value = 'processing'
@@ -193,7 +193,7 @@ async function handleCheckin(hid: string, nonce: string) {
   }
 }
 
-onMounted(loadData)
+onMounted(async () => { await Promise.all([refreshRoles(), loadData()]) })
 </script>
 
 <template>
