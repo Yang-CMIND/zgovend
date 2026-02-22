@@ -122,7 +122,7 @@ onMounted(async () => {
       <div v-if="machines.length === 0" class="placeholder">尚無機台</div>
 
       <ul class="machine-list">
-        <li v-for="m in machines" :key="m.vmid" class="machine-card">
+        <li v-for="m in machines" :key="m.vmid" class="machine-card" @click="$router.push(`/operator/${operatorId}/machines/${m.vmid}?hid=${m.hidCode}`)">
           <div class="mc-header">
             <span class="mc-status">{{ m.online ? '✅' : '❌' }}</span>
             <span class="mc-name">{{ m.vmid }}</span>
@@ -171,6 +171,7 @@ onMounted(async () => {
   gap: 10px;
 }
 .machine-card {
+  cursor: pointer;
   background: #fff;
   border: 1px solid #eee;
   border-radius: 10px;
