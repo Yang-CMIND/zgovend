@@ -104,7 +104,7 @@ onMounted(async () => {
     <PageHeader :crumbs="[
       { label: operatorName, to: `/operator/${operatorId}` },
       { label: '商品主檔' },
-    ]">
+    ]" :onRefresh="load">
       <button class="header-action" @click="startNew">＋新增</button>
     </PageHeader>
 
