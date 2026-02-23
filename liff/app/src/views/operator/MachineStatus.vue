@@ -32,7 +32,7 @@ async function loadStatus() {
     // 取得此營運商的所有機台
     const data = await gql(`query($opId: String!) {
       vms(operatorId: $opId, status: "active") { vmid hidCode locationName }
-      heartbeats { deviceId temperature screenshotUrl receivedAt }
+      heartbeats { deviceId stat content receivedAt }
     }`, { opId: operatorId })
 
     const hbMap = new Map<string, any>()
@@ -47,15 +47,14 @@ async function loadStatus() {
       let lastHeartbeat: string | null = null
       if (hb?.receivedAt) {
         lastHeartbeat = hb.receivedAt
-        const diffMin = (Date.now() - new Date(Number(hb.receivedAt)).getTime()) / 60000
+        const diffMin = (Date.now() - new Date(hb.receivedAt).getTime()) / 60000
         online = diffMin < OFFLINE_THRESHOLD_MIN
       }
       return {
         vmid: vm.vmid,
         hidCode: vm.hidCode || '',
         locationName: vm.locationName || '',
-        temperature: hb?.temperature ?? null,
-        screenshotUrl: hb?.screenshotUrl || '',
+        stat: hb?.stat || null,
         lastHeartbeat,
         online,
       }
@@ -69,7 +68,7 @@ async function loadStatus() {
 
 function formatHeartbeat(ts: string | null) {
   if (!ts) return '尚無心跳'
-  const d = new Date(Number(ts))
+  const d = new Date(ts)
   if (isNaN(d.getTime())) return '尚無心跳'
   const now = new Date()
   const diffMin = Math.floor((now.getTime() - d.getTime()) / 60000)
@@ -97,9 +96,7 @@ onMounted(async () => {
     <PageHeader :crumbs="[
       { label: operatorName, to: `/operator/${operatorId}` },
       { label: '機台狀態' },
-    ]">
-      <button class="header-action" @click="loadStatus" :disabled="loading">🔄</button>
-    </PageHeader>
+    ]" :onRefresh="loadStatus" />
 
     <div v-if="loading" class="placeholder">載入中…</div>
     <template v-else>
@@ -129,11 +126,7 @@ onMounted(async () => {
           </div>
           <div v-if="m.locationName" class="mc-location">📍 {{ m.locationName }}</div>
           <div class="mc-details">
-            <span v-if="m.temperature !== null" class="mc-temp">🌡️ {{ m.temperature }}°C</span>
             <span class="mc-heartbeat">💓 {{ formatHeartbeat(m.lastHeartbeat) }}</span>
-          </div>
-          <div v-if="m.screenshotUrl" class="mc-screenshot-row">
-            <button class="btn-screenshot" @click="previewUrl = m.screenshotUrl">📸 畫面截圖</button>
           </div>
         </li>
       </ul>

@@ -100,7 +100,7 @@ function onFilterChange(status: string) {
     <PageHeader :crumbs="[
       { label: operatorName, to: `/operator/${operatorId}` },
       { label: '消費者問題' },
-    ]" />
+    ]" :onRefresh="loadTickets" />
 
     <div class="filters">
       <button v-for="f in statusFilters" :key="f.value"

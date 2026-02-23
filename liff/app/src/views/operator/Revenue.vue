@@ -327,7 +327,7 @@ onMounted(async () => {
     <PageHeader :crumbs="[
       { label: operatorName, to: `/operator/${operatorId}` },
       { label: '營收與訂單' },
-    ]" />
+    ]" :onRefresh="loadData" />
 
     <div v-if="loading" class="placeholder">載入中…</div>
     <template v-else>

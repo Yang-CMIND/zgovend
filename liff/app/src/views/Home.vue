@@ -20,6 +20,7 @@ const vmStatusMap = ref<Record<string, VmStatus>>({})
 const revenueMap = ref<Record<string, DailyRevenue>>({})
 const adminCounts = ref({ users: 0, operators: 0, hids: 0, vms: 0 })
 const loaded = ref(false)
+const refreshing = ref(false)
 
 // 巡補掃碼狀態
 const checkinStatus = ref<'' | 'scanning' | 'processing' | 'done' | 'error'>('')
@@ -83,6 +84,15 @@ async function loadData() {
 
 function opName(code: string) {
   return operatorMap.value[code]?.name || code
+}
+
+async function refresh() {
+  refreshing.value = true
+  try {
+    await loadData()
+  } finally {
+    refreshing.value = false
+  }
 }
 
 /** 巡補作業：掃碼 → 認證 → 進入 session */
@@ -200,9 +210,14 @@ onMounted(async () => { await Promise.all([refreshRoles(), loadData()]) })
   <div class="page">
     <header class="header">
       <h1>智購小幫手</h1>
-      <div v-if="profile" class="user-info">
-        <img v-if="profile.pictureUrl" :src="profile.pictureUrl" class="avatar" />
-        <span>{{ profile.displayName }}</span>
+      <div class="header-right">
+        <button class="refresh-btn" @click="refresh" :disabled="refreshing" title="重新整理">
+          <span :class="{ spinning: refreshing }">🔄</span>
+        </button>
+        <div v-if="profile" class="user-info">
+          <img v-if="profile.pictureUrl" :src="profile.pictureUrl" class="avatar" />
+          <span>{{ profile.displayName }}</span>
+        </div>
       </div>
     </header>
 
@@ -334,5 +349,35 @@ onMounted(async () => { await Promise.all([refreshRoles(), loadData()]) })
   border-radius: 10px;
   margin-left: 4px;
   vertical-align: middle;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.refresh-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.refresh-btn:hover {
+  opacity: 1;
+}
+.refresh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+.spinning {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>
