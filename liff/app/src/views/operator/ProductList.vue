@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { gql } from '../../composables/useGraphQL'
 import PageHeader from '../../components/PageHeader.vue'
+import ExportButtons from '../../components/ExportButtons.vue'
 
 const route = useRoute()
 const operatorId = route.params.operatorId as string
@@ -25,6 +26,40 @@ const editing = ref<Partial<Product> | null>(null)
 const isNew = ref(false)
 const saving = ref(false)
 const filter = ref<'all' | 'active' | 'inactive'>('all')
+const uploading = ref(false)
+const dragOver = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+const brokenEditImg = ref(false)
+
+async function uploadImage(file: File) {
+  uploading.value = true
+  try {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch('/upload/product-image', { method: 'POST', body: form })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.error || 'Upload failed')
+    if (editing.value) {
+      editing.value.imageUrl = json.url
+      brokenEditImg.value = false
+    }
+  } catch (e: any) {
+    alert('圖片上傳失敗：' + e.message)
+  } finally {
+    uploading.value = false
+  }
+}
+
+function onDrop(e: DragEvent) {
+  dragOver.value = false
+  const file = e.dataTransfer?.files?.[0]
+  if (file && file.type.startsWith('image/')) uploadImage(file)
+}
+
+function onFileSelect(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (file) uploadImage(file)
+}
 
 async function load() {
   loading.value = true
@@ -39,11 +74,13 @@ async function load() {
 
 function startNew() {
   isNew.value = true
+  brokenEditImg.value = false
   editing.value = { code: '', name: '', price: 0, barcode: '', imageUrl: '', status: 'active', notes: '' }
 }
 
 function startEdit(item: Product) {
   isNew.value = false
+  brokenEditImg.value = false
   editing.value = { ...item }
 }
 
@@ -97,6 +134,10 @@ onMounted(async () => {
   } catch {}
   load()
 })
+function csvRows() {
+  return items.value.map(p => [p.code, p.name, String(p.price), p.barcode || '', statusLabel(p.status), p.notes || ''])
+}
+const csvHeaders = ['編號', '名稱', '售價', '條碼', '狀態', '備註']
 </script>
 
 <template>
@@ -106,6 +147,7 @@ onMounted(async () => {
       { label: '商品主檔' },
     ]" :onRefresh="load">
       <button class="header-action" @click="startNew">＋新增</button>
+      <ExportButtons filename="products" :headers="csvHeaders" :rows="csvRows" />
     </PageHeader>
 
     <!-- 篩選 -->
@@ -138,6 +180,7 @@ onMounted(async () => {
     <!-- 編輯 modal -->
     <div v-if="editing" class="overlay">
       <div class="modal">
+        <button class="modal-close-btn" @click="cancel">✕</button>
         <h2>{{ isNew ? '新增商品' : '編輯商品' }}</h2>
         <div class="form-fields">
           <label class="form-label">
@@ -156,10 +199,28 @@ onMounted(async () => {
             <span>條碼</span>
             <input v-model="editing.barcode" placeholder="barcode（選填）" />
           </label>
-          <label class="form-label">
-            <span>圖片網址</span>
-            <input v-model="editing.imageUrl" placeholder="https://…（選填）" />
-          </label>
+          <label class="form-label"><span>商品圖片</span></label>
+          <div
+            class="img-upload-zone"
+            :class="{ 'drag-over': dragOver, uploading }"
+            @dragover.prevent="dragOver = true"
+            @dragleave="dragOver = false"
+            @drop.prevent="onDrop"
+            @click="fileInput?.click()"
+          >
+            <img
+              v-if="editing.imageUrl && !brokenEditImg"
+              :src="editing.imageUrl"
+              class="img-preview"
+              @error="brokenEditImg = true"
+            />
+            <div v-else class="img-placeholder">
+              <span class="img-placeholder-icon">📷</span>
+              <span class="img-placeholder-text">拖曳圖片或點擊選取</span>
+            </div>
+            <div v-if="uploading" class="img-uploading">上傳中…</div>
+          </div>
+          <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileSelect" />
           <label class="form-label">
             <span>狀態</span>
             <select v-model="editing.status">
@@ -276,5 +337,47 @@ onMounted(async () => {
 .product-barcode {
   color: #999;
   font-size: 12px;
+}
+.img-upload-zone {
+  position: relative;
+  border: 2px dashed #ddd;
+  border-radius: 10px;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 8px;
+}
+.img-upload-zone:hover { border-color: #4a90d9; }
+.img-upload-zone.drag-over { border-color: #4a90d9; background: #eef4fb; }
+.img-upload-zone.uploading { opacity: 0.6; pointer-events: none; }
+.img-preview {
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.img-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #aaa;
+}
+.img-placeholder-icon { font-size: 36px; }
+.img-placeholder-text { font-size: 13px; }
+.img-uploading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.8);
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a90d9;
 }
 </style>

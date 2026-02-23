@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { gql } from '../../composables/useGraphQL'
 import PageHeader from '../../components/PageHeader.vue'
+import ExportButtons from '../../components/ExportButtons.vue'
 
 const route = useRoute()
 const operatorId = route.params.operatorId as string
@@ -45,6 +46,10 @@ function formatDate(ts: number) {
 }
 function itemCount(o: any) { return o.items.reduce((s: number, i: any) => s + i.qty, 0) }
 function pickedCount(o: any) { return o.items.filter((i: any) => i.pickedUp).length }
+function csvRows() {
+  return orders.value.map(o => [o.orderId, o.displayName || '', o.vmid || '', statusLabel[o.status] || o.status, o.createdAt ? new Date(o.createdAt).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'}) : ''])
+}
+const csvHeaders = ['訂單號', '訂購人', '機台', '狀態', '建立時間']
 </script>
 
 <template>
@@ -53,7 +58,9 @@ function pickedCount(o: any) { return o.items.filter((i: any) => i.pickedUp).len
       { label: '營運管理', to: '/' },
       { label: operatorName, to: `/operator/${operatorId}` },
       { label: '線上訂單' },
-    ]" />
+    ]">
+      <ExportButtons filename="online-orders" :headers="csvHeaders" :rows="csvRows" />
+    </PageHeader>
     <div class="content">
       <div class="filter-row">
         <button v-for="s in statuses" :key="s" :class="['chip', { active: filterStatus === s }]"

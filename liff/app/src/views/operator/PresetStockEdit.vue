@@ -217,6 +217,7 @@ onMounted(async () => {
     <!-- Add channel dialog -->
     <div v-if="showAddDialog" class="overlay">
       <div class="modal">
+        <button class="modal-close-btn" @click="showAddDialog = false">✕</button>
         <h2>新增貨道</h2>
         <div class="form-fields">
           <label class="form-label">

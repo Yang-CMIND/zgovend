@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { gql } from '../../composables/useGraphQL'
 import PageHeader from '../../components/PageHeader.vue'
+import ExportButtons from '../../components/ExportButtons.vue'
 
 // ECharts tree-shaken imports
 import { use } from 'echarts/core'
@@ -320,6 +321,10 @@ onMounted(async () => {
   } catch {}
   loadData()
 })
+function csvRows() {
+  return transactions.value.map(t => [t.txno, t.deviceId, t.productName || '', String(t.price || 0), t.paymentMethod || '', t.dispenseSuccess === true ? '成功' : t.dispenseSuccess === false ? '失敗' : '', t.startedAt ? new Date(t.startedAt).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'}) : ''])
+}
+const csvHeaders = ['交易號', '設備ID', '商品', '金額', '付款方式', '出貨', '時間']
 </script>
 
 <template>
@@ -327,7 +332,9 @@ onMounted(async () => {
     <PageHeader :crumbs="[
       { label: operatorName, to: `/operator/${operatorId}` },
       { label: '營收與訂單' },
-    ]" :onRefresh="loadData" />
+    ]" :onRefresh="loadData">
+      <ExportButtons filename="revenue" :headers="csvHeaders" :rows="csvRows" />
+    </PageHeader>
 
     <div v-if="loading" class="placeholder">載入中…</div>
     <template v-else>

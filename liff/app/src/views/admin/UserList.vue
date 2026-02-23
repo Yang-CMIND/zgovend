@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { gql } from '../../composables/useGraphQL'
 import PageHeader from '../../components/PageHeader.vue'
+import ExportButtons from '../../components/ExportButtons.vue'
 
 interface OperatorRole {
   operatorId: string
@@ -150,6 +151,10 @@ function formatTime(ts: string) {
 }
 
 onMounted(loadUsers)
+function csvRows() {
+  return users.value.map(u => [u.lineUserId, u.displayName, u.isAdmin ? '是' : '否', summaryText(u), formatTime(u.lastLoginAt)])
+}
+const csvHeaders = ['LINE ID', '名稱', '管理員', '角色', '最後登入']
 </script>
 
 <template>
@@ -159,6 +164,7 @@ onMounted(loadUsers)
       { label: '使用者管理' },
     ]" :onRefresh="loadUsers">
       <span class="header-badge">{{ users.length }}</span>
+      <ExportButtons filename="users" :headers="csvHeaders" :rows="csvRows" />
     </PageHeader>
 
     <div v-if="loading" class="placeholder">載入中…</div>
@@ -180,6 +186,7 @@ onMounted(loadUsers)
     <!-- 編輯角色 overlay -->
     <div v-if="editingUser" class="overlay">
       <div class="modal modal-wide">
+        <button class="modal-close-btn" @click="cancelEdit">✕</button>
         <h2>{{ editingUser.displayName }}</h2>
 
         <label class="admin-checkbox">

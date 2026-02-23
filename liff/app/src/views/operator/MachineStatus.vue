@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { gql } from '../../composables/useGraphQL'
 import PageHeader from '../../components/PageHeader.vue'
+import ExportButtons from '../../components/ExportButtons.vue'
 
 const route = useRoute()
 const operatorId = route.params.operatorId as string
@@ -33,11 +34,17 @@ async function loadStatus() {
     const data = await gql(`query($opId: String!) {
       vms(operatorId: $opId, status: "active") { vmid hidCode locationName }
       heartbeats { deviceId stat content receivedAt }
+      stocks { deviceId channels { chid quantity max } }
     }`, { opId: operatorId })
 
     const hbMap = new Map<string, any>()
     for (const hb of data.heartbeats || []) {
       hbMap.set(hb.deviceId, hb)
+    }
+
+    const stockMap = new Map<string, any>()
+    for (const s of data.stocks || []) {
+      stockMap.set(s.deviceId, s)
     }
 
     machines.value = (data.vms || []).map((vm: any) => {
@@ -50,6 +57,14 @@ async function loadStatus() {
         const diffMin = (Date.now() - new Date(hb.receivedAt).getTime()) / 60000
         online = diffMin < OFFLINE_THRESHOLD_MIN
       }
+      // 庫存
+      const st = vm.hidCode ? stockMap.get(vm.hidCode) : null
+      let stockPct: number | null = null
+      if (st?.channels?.length) {
+        const total = st.channels.reduce((s: number, c: any) => s + (c.quantity || 0), 0)
+        const totalMax = st.channels.reduce((s: number, c: any) => s + (c.max || 0), 0)
+        stockPct = totalMax > 0 ? Math.round((total / totalMax) * 100) : null
+      }
       return {
         vmid: vm.vmid,
         hidCode: vm.hidCode || '',
@@ -57,6 +72,7 @@ async function loadStatus() {
         stat: hb?.stat || null,
         lastHeartbeat,
         online,
+        stockPct,
       }
     })
   } catch (e: any) {
@@ -89,14 +105,20 @@ onMounted(async () => {
   } catch {}
   loadStatus()
 })
+function csvRows() {
+  return machines.value.map(m => [m.vmid, m.hidCode, m.locationName, m.online ? '在線' : '離線', m.stockPct !== null ? m.stockPct + '%' : ''])
+}
+const csvHeaders = ['機台ID', 'HID', '位置', '狀態', '庫存']
 </script>
 
 <template>
   <div class="page">
     <PageHeader :crumbs="[
       { label: operatorName, to: `/operator/${operatorId}` },
-      { label: '機台狀態' },
-    ]" :onRefresh="loadStatus" />
+      { label: '機台狀態及庫存' },
+    ]" :onRefresh="loadStatus">
+      <ExportButtons filename="machine-status" :headers="csvHeaders" :rows="csvRows" />
+    </PageHeader>
 
     <div v-if="loading" class="placeholder">載入中…</div>
     <template v-else>
@@ -127,6 +149,9 @@ onMounted(async () => {
           <div v-if="m.locationName" class="mc-location">📍 {{ m.locationName }}</div>
           <div class="mc-details">
             <span class="mc-heartbeat">💓 {{ formatHeartbeat(m.lastHeartbeat) }}</span>
+            <span v-if="m.stockPct !== null" class="mc-stock" :class="{ 'stock-low': m.stockPct <= 20, 'stock-mid': m.stockPct > 20 && m.stockPct <= 50 }">
+              📦 {{ m.stockPct }}%
+            </span>
           </div>
         </li>
       </ul>
@@ -175,7 +200,10 @@ onMounted(async () => {
 .mc-status { font-size: 18px; }
 .mc-name { font-size: 16px; font-weight: 600; flex: 1; }
 .mc-location { font-size: 13px; color: #888; margin-top: 4px; }
-.mc-details { display: flex; gap: 16px; margin-top: 6px; font-size: 13px; color: #666; }
+.mc-details { display: flex; gap: 16px; margin-top: 6px; font-size: 13px; color: #666; flex-wrap: wrap; }
+.mc-stock { font-weight: 600; color: #2e7d32; }
+.mc-stock.stock-low { color: #c62828; }
+.mc-stock.stock-mid { color: #e65100; }
 .mc-screenshot-row { margin-top: 8px; }
 .btn-screenshot {
   padding: 4px 10px;

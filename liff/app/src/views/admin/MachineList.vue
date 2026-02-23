@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { gql } from '../../composables/useGraphQL'
 import PageHeader from '../../components/PageHeader.vue'
+import ExportButtons from '../../components/ExportButtons.vue'
 
 interface Machine {
   id: string
@@ -96,6 +97,10 @@ function statusLabel(s: string) {
 }
 
 onMounted(load)
+function csvRows() {
+  return items.value.map(m => [m.vmid, m.hidCode, m.operatorId, m.locationName || '', m.status])
+}
+const csvHeaders = ['機台ID', 'HID', '營運商', '位置', '狀態']
 </script>
 
 <template>
@@ -105,6 +110,7 @@ onMounted(load)
       { label: '機台管理' },
     ]">
       <button class="header-action" @click="startNew">＋新增</button>
+      <ExportButtons filename="machines" :headers="csvHeaders" :rows="csvRows" />
     </PageHeader>
 
     <div v-if="loading" class="placeholder">載入中…</div>
@@ -125,6 +131,7 @@ onMounted(load)
 
     <div v-if="editing" class="overlay">
       <div class="modal">
+        <button class="modal-close-btn" @click="cancel">✕</button>
         <h2>{{ isNew ? '新增機台' : '編輯機台' }}</h2>
         <div class="form-fields">
           <label class="form-label">

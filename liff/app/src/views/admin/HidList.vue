@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { gql } from '../../composables/useGraphQL'
 import PageHeader from '../../components/PageHeader.vue'
+import ExportButtons from '../../components/ExportButtons.vue'
 
 interface Hid {
   id: string
@@ -56,6 +57,10 @@ async function remove(item: Hid) {
 function statusLabel(s: string) { return s === 'active' ? '啟用' : '停用' }
 
 onMounted(load)
+function csvRows() {
+  return items.value.map(h => [h.hidCode, h.label || '', h.status])
+}
+const csvHeaders = ['HID', '標籤', '狀態']
 </script>
 
 <template>
@@ -65,6 +70,7 @@ onMounted(load)
       { label: '機碼設定' },
     ]">
       <button class="header-action" @click="startNew">＋新增</button>
+      <ExportButtons filename="hids" :headers="csvHeaders" :rows="csvRows" />
     </PageHeader>
 
     <div v-if="loading" class="placeholder">載入中…</div>
@@ -83,6 +89,7 @@ onMounted(load)
 
     <div v-if="editing" class="overlay">
       <div class="modal">
+        <button class="modal-close-btn" @click="cancel">✕</button>
         <h2>{{ isNew ? '新增機碼' : '編輯機碼' }}</h2>
         <div class="form-fields">
           <label class="form-label"><span>機碼 *</span><input v-model="editing.code" :disabled="!isNew" placeholder="機台代碼" /></label>

@@ -40,7 +40,7 @@ const OFFLINE_THRESHOLD_MIN = 10
 
 const isOnline = computed(() => {
   if (!currentHb.value?.receivedAt) return false
-  const diffMin = (Date.now() - Number(currentHb.value.receivedAt)) / 60000
+  const diffMin = (Date.now() - new Date(currentHb.value.receivedAt).getTime()) / 60000
   return diffMin < OFFLINE_THRESHOLD_MIN
 })
 
@@ -88,7 +88,7 @@ const stockSummary = computed(() => {
 
 function formatHeartbeat(ts: string | null) {
   if (!ts) return '尚無心跳'
-  const d = new Date(Number(ts))
+  const d = new Date(ts)
   if (isNaN(d.getTime())) return '尚無心跳'
   const now = new Date()
   const diffMin = Math.floor((now.getTime() - d.getTime()) / 60000)
@@ -105,7 +105,7 @@ const chartOption = computed(() => {
   const points = tempHistory.value
     .filter(p => p.temperature !== null)
     .map(p => ({
-      time: new Date(Number(p.receivedAt)),
+      time: new Date(p.receivedAt),
       temp: p.temperature as number,
     }))
     .sort((a, b) => a.time.getTime() - b.time.getTime())
@@ -230,11 +230,9 @@ onMounted(async () => {
   <div class="page">
     <PageHeader :crumbs="[
       { label: operatorName, to: `/operator/${operatorId}` },
-      { label: '機台狀態', to: `/operator/${operatorId}/machine-status` },
+      { label: '機台狀態及庫存', to: `/operator/${operatorId}/machine-status` },
       { label: vmid },
-    ]">
-      <button class="header-action" @click="loadDetail" :disabled="loading">🔄</button>
-    </PageHeader>
+    ]" :onRefresh="loadDetail" />
 
     <div v-if="loading" class="placeholder">載入中…</div>
     <template v-else>

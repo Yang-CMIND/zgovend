@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { gql } from '../../composables/useGraphQL'
 import PageHeader from '../../components/PageHeader.vue'
+import ExportButtons from '../../components/ExportButtons.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -152,6 +153,10 @@ onMounted(async () => {
   } catch {}
   load()
 })
+function csvRows() {
+  return items.value.map(p => [p.name, p.sourceType || '', p.updatedAt || ''])
+}
+const csvHeaders = ['名稱', '來源', '更新時間']
 </script>
 
 <template>
@@ -161,6 +166,7 @@ onMounted(async () => {
       { label: '庫存預約設定' },
     ]">
       <button class="header-action" @click="openCreate('blank')">＋新增</button>
+      <ExportButtons filename="preset-stocks" :headers="csvHeaders" :rows="csvRows" />
     </PageHeader>
 
     <div v-if="loading" class="placeholder">載入中…</div>
@@ -193,6 +199,7 @@ onMounted(async () => {
     <!-- 新增 / 複製 Dialog -->
     <div v-if="showCreateDialog" class="overlay">
       <div class="modal">
+        <button class="modal-close-btn" @click="showCreateDialog = false">✕</button>
         <h2>{{ createMode === 'blank' ? '新增空白設定檔' : createMode === 'machine' ? '從機台快照建立' : '複製設定檔' }}</h2>
         <div class="form-fields">
           <label class="form-label">
@@ -226,6 +233,7 @@ onMounted(async () => {
     <!-- 重命名 Dialog -->
     <div v-if="renaming" class="overlay">
       <div class="modal">
+        <button class="modal-close-btn" @click="renaming = null">✕</button>
         <h2>重命名設定檔</h2>
         <div class="form-fields">
           <label class="form-label">

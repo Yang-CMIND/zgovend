@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { gql } from '../../composables/useGraphQL'
 import { useLiff } from '../../composables/useLiff'
 import PageHeader from '../../components/PageHeader.vue'
+import ExportButtons from '../../components/ExportButtons.vue'
 
 const route = useRoute()
 const operatorId = route.params.operatorId as string
@@ -93,6 +94,10 @@ function onFilterChange(status: string) {
   filterStatus.value = status
   loadTickets()
 }
+function csvRows() {
+  return tickets.value.map(t => [t.ticketId, t.subject, t.displayName, categoryLabel[t.category] || t.category, statusLabel[t.status] || t.status, formatTime(t.updatedAt)])
+}
+const csvHeaders = ['問題單號', '主旨', '回報者', '類別', '狀態', '更新時間']
 </script>
 
 <template>
@@ -100,7 +105,9 @@ function onFilterChange(status: string) {
     <PageHeader :crumbs="[
       { label: operatorName, to: `/operator/${operatorId}` },
       { label: '消費者問題' },
-    ]" :onRefresh="loadTickets" />
+    ]" :onRefresh="loadTickets">
+      <ExportButtons filename="tickets" :headers="csvHeaders" :rows="csvRows" />
+    </PageHeader>
 
     <div class="filters">
       <button v-for="f in statusFilters" :key="f.value"

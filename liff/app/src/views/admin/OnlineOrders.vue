@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import QRCode from 'qrcode'
 import { gql } from '../../composables/useGraphQL'
 import PageHeader from '../../components/PageHeader.vue'
+import ExportButtons from '../../components/ExportButtons.vue'
 
 const orders = ref<any[]>([])
 const loading = ref(true)
@@ -65,11 +66,17 @@ async function toggleItemPickup(orderId: string, idx: number, pickedUp: boolean)
     if (detail.value?.orderId === orderId) detail.value = updated
   } catch (e: any) { alert('更新失敗: ' + e.message) }
 }
+function csvRows() {
+  return orders.value.map(o => [o.orderId, o.displayName || '', o.vmid || '', statusLabel[o.status] || o.status, o.createdAt ? new Date(o.createdAt).toLocaleString('zh-TW', {timeZone:'Asia/Taipei'}) : ''])
+}
+const csvHeaders = ['訂單號', '訂購人', '機台', '狀態', '建立時間']
 </script>
 
 <template>
   <div class="page">
-    <PageHeader :crumbs="[{ label: '系統管理', to: '/admin' }, { label: '取貨單管理' }]" />
+    <PageHeader :crumbs="[{ label: '系統管理', to: '/admin' }, { label: '取貨單管理' }]">
+      <ExportButtons filename="online-orders" :headers="csvHeaders" :rows="csvRows" />
+    </PageHeader>
     <div class="content">
       <!-- Filter -->
       <div class="filter-row">

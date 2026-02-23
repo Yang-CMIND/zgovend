@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { gql } from '../../composables/useGraphQL'
 import { useLiff } from '../../composables/useLiff'
 import PageHeader from '../../components/PageHeader.vue'
+import ExportButtons from '../../components/ExportButtons.vue'
 
 interface SummaryVm { vmid: string; currentQty: number; maxQty: number; needed: number }
 interface SummaryRow {
@@ -72,7 +73,7 @@ async function load() {
     // Get all VMs user can access
     const vmData = await gql<{ vms: { vmid: string; operatorId: string }[] }>(`query { vms { vmid operatorId } }`)
     const myVmids = vmData.vms
-      .filter(vm => isAdmin.value || operatorRoles.value.some(or => or.operatorId === vm.operatorId && or.roles.includes('replenisher')))
+      .filter(vm => operatorRoles.value.some(or => or.operatorId === vm.operatorId && or.roles.includes('replenisher')))
       .map(v => v.vmid)
 
     if (!myVmids.length) { allVmids.value = []; allRows.value = []; return }
@@ -96,11 +97,17 @@ async function load() {
 }
 
 onMounted(load)
+function csvRows() {
+  return filteredRows.value.map(r => [r.operatorId, r.productCode, r.productName, String(r.price), String(r.totalCurrent), String(r.totalMax), String(r.totalNeeded)])
+}
+const csvHeaders = ['營運商', '商品編號', '商品名稱', '售價', '目前庫存', '最大庫存', '需補數量']
 </script>
 
 <template>
   <div class="page">
-    <PageHeader :crumbs="[{ label: '巡補員', to: '/' }, { label: '撿貨清單' }]" />
+    <PageHeader :crumbs="[{ label: '巡補員', to: '/' }, { label: '撿貨清單' }]">
+      <ExportButtons filename="picklist" :headers="csvHeaders" :rows="csvRows" />
+    </PageHeader>
 
     <div class="content">
       <!-- Loading -->
