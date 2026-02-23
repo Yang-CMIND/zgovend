@@ -153,12 +153,11 @@ function onFilterChange(status: string) {
 </template>
 
 <style scoped>
-.page { max-width: 480px; margin: 0 auto; padding: 16px; }
-.filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; padding: 0 16px; }
 .chip { padding: 6px 14px; border-radius: 16px; border: 1px solid #ddd; background: #fff; font-size: 13px; cursor: pointer; }
 .chip.active { background: #667eea; color: #fff; border-color: #667eea; }
 .loading, .empty { text-align: center; color: #888; padding: 40px 0; }
-.card { background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); cursor: pointer; }
+.card { background: #fff; border-radius: 10px; padding: 14px; margin: 0 16px 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); cursor: pointer; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .card-title { font-weight: 600; font-size: 15px; }
 .card-meta { font-size: 12px; color: #888; margin-top: 4px; }

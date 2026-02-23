@@ -354,6 +354,7 @@ onMounted(async () => { await Promise.all([refreshRoles(), loadData()]) })
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-left: auto;
 }
 .refresh-btn {
   background: none;

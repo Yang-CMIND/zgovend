@@ -1,10 +1,10 @@
 <template>
   <div class="transaction-detail">
     <PageHeader
-      :breadcrumbs="[
-        { text: operatorName, link: `/operator/${operatorId}` },
-        { text: '營收與訂單', link: `/operator/${operatorId}/revenue` },
-        { text: '交易詳情' }
+      :crumbs="[
+        { label: operatorName, to: `/operator/${operatorId}` },
+        { label: '營收與訂單', to: `/operator/${operatorId}/revenue` },
+        { label: '交易詳情' }
       ]"
     />
 
@@ -122,12 +122,17 @@ onMounted(async () => {
             trigger
             state
             arg
+            can
           }
         }
       }
     `, { txno: txno.value })
 
-    timeline.value = result.sessionTimeline
+    const raw = result.sessionTimeline
+    if (raw?.events) {
+      raw.events = raw.events.filter((e: any) => e.can !== 0)
+    }
+    timeline.value = raw
     
     // Fetch operator name
     const opResult = await gql(`

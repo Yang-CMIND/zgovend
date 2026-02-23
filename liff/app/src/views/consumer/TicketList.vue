@@ -29,14 +29,19 @@ function timeAgo(ts: number) {
   return `${days}天前`
 }
 
-onMounted(async () => {
-  await init()
+async function loadTickets() {
+  loading.value = true
   try {
     const data = await gql(`query($uid: String!) { myTickets(lineUserId: $uid) {
       ticketId subject status operatorId category updatedAt
     } }`, { uid: profile.value?.userId || '' })
     tickets.value = data.myTickets || []
   } finally { loading.value = false }
+}
+
+onMounted(async () => {
+  await init()
+  await loadTickets()
 })
 </script>
 
@@ -45,7 +50,7 @@ onMounted(async () => {
     <PageHeader :crumbs="[
       { label: '消費者服務', to: '/consumer' },
       { label: '我的問題單' },
-    ]" />
+    ]" :onRefresh="loadTickets" />
     <div v-if="loading" class="loading">載入中...</div>
     <div v-else-if="!tickets.length" class="empty">尚無問題單</div>
     <router-link v-for="t in tickets" :key="t.ticketId" :to="`/consumer/tickets/${t.ticketId}`" class="card">
@@ -64,10 +69,9 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.page { max-width: 480px; margin: 0 auto; padding: 16px; }
 .loading, .empty { text-align: center; color: #888; padding: 40px 0; }
 .card {
-  display: block; padding: 14px; margin-bottom: 10px; background: #fff;
+  display: block; padding: 14px; margin: 0 16px 10px; background: #fff;
   border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); text-decoration: none; color: inherit;
 }
 .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }

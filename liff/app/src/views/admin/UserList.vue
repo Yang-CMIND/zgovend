@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { gql } from '../../composables/useGraphQL'
 import PageHeader from '../../components/PageHeader.vue'
 
@@ -30,6 +30,11 @@ const editingUser = ref<User | null>(null)
 const editAdmin = ref(false)
 const editRoles = ref<OperatorRole[]>([])
 const saving = ref(false)
+const brokenAvatars = reactive(new Set<string>())
+
+function onAvatarError(lineUserId: string) {
+  brokenAvatars.add(lineUserId)
+}
 
 const OP_ROLE_OPTIONS = [
   { value: 'operator', label: '營運管理' },
@@ -161,7 +166,7 @@ onMounted(loadUsers)
 
     <ul v-else class="user-list">
       <li v-for="user in users" :key="user.lineUserId" class="user-item" @click="startEdit(user)">
-        <img v-if="user.pictureUrl" :src="user.pictureUrl" class="avatar" />
+        <img v-if="user.pictureUrl && !brokenAvatars.has(user.lineUserId)" :src="user.pictureUrl" class="avatar" @error="onAvatarError(user.lineUserId)" />
         <div v-else class="avatar avatar-placeholder">👤</div>
         <div class="user-info-col">
           <div class="user-name">{{ user.displayName }}</div>

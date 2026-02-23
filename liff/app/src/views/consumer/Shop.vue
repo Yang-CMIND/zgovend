@@ -18,13 +18,8 @@ const sortBy = ref('default') // default | price_asc | price_desc | stock_desc |
 // Cart stored in localStorage
 const cart = ref<Record<string, { product: any; qty: number }>>({})
 
-onMounted(async () => {
-  // Load cart from localStorage
-  try {
-    const saved = localStorage.getItem('shop_cart')
-    if (saved) cart.value = JSON.parse(saved)
-  } catch {}
-
+async function loadProducts() {
+  loading.value = true
   try {
     const data = await gql(`query { shopProducts { productCode operatorId productName imageUrl price availableQty locations } operators(limit:200) { code name } }`)
     products.value = data.shopProducts || []
@@ -34,6 +29,15 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+}
+
+onMounted(async () => {
+  // Load cart from localStorage
+  try {
+    const saved = localStorage.getItem('shop_cart')
+    if (saved) cart.value = JSON.parse(saved)
+  } catch {}
+  await loadProducts()
 })
 
 // Distinct operators / locations from loaded data
@@ -124,7 +128,7 @@ const hasFilters = computed(() => search.value || selectedOp.value || selectedLo
     <PageHeader :crumbs="[
       { label: '消費者服務', to: '/consumer' },
       { label: '線上訂購' },
-    ]" />
+    ]" :onRefresh="loadProducts" />
 
     <div class="content">
       <!-- Search & Filter Bar -->
