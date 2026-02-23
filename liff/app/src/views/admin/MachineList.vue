@@ -100,7 +100,7 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <PageHeader :onRefresh="load" :crumbs="[
+    <PageHeader :crumbs="[
       { label: '系統管理', to: '/admin' },
       { label: '機台管理' },
     ]">

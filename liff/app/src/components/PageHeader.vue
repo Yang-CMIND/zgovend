@@ -1,27 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-
 export interface Crumb {
   label: string
   to?: string  // 沒有 to 代表當前頁（不可點）
 }
 
-const props = defineProps<{
+defineProps<{
   crumbs: Crumb[]
-  onRefresh?: () => Promise<void> | void
 }>()
-
-const refreshing = ref(false)
-
-async function handleRefresh() {
-  if (!props.onRefresh || refreshing.value) return
-  refreshing.value = true
-  try {
-    await props.onRefresh()
-  } finally {
-    refreshing.value = false
-  }
-}
 </script>
 
 <template>
@@ -34,12 +19,7 @@ async function handleRefresh() {
         <span v-else class="crumb-current">{{ crumb.label }}</span>
       </template>
     </nav>
-    <div class="header-actions">
-      <button v-if="onRefresh" class="refresh-btn" @click="handleRefresh" :disabled="refreshing" title="重新整理">
-        <span :class="{ spinning: refreshing }">🔄</span>
-      </button>
-      <slot />
-    </div>
+    <div class="header-slot"><slot /></div>
   </header>
 </template>
 
@@ -86,36 +66,8 @@ async function handleRefresh() {
   font-weight: 600;
   color: #333;
 }
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.header-slot {
   flex-shrink: 0;
   margin-left: auto;
-}
-.refresh-btn {
-  background: none;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 4px;
-  line-height: 1;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-.refresh-btn:hover {
-  opacity: 1;
-}
-.refresh-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.3;
-}
-.spinning {
-  display: inline-block;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 </style>

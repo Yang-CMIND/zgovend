@@ -45,7 +45,7 @@ const isOnline = computed(() => {
 })
 
 const statLabel = computed(() => {
-  const stat = currentHb.value?.stat
+  const stat = currentHb.value?.payload?.stat
   if (!stat) return null
   const map: Record<string, { label: string; color: string }> = {
     OPERATION: { label: '銷售中', color: '#2e7d32' },
@@ -57,7 +57,7 @@ const statLabel = computed(() => {
 })
 
 const errFlags = computed(() => {
-  const flags = currentHb.value?.content
+  const flags = currentHb.value?.payload?.err_flags
   if (!flags || flags === '') return null
   return flags
 })
@@ -187,15 +187,15 @@ async function loadDetail() {
     } else {
       const data = await gql(`query($vmid: String!, $deviceId: String!, $limit: Int, $opId: String) {
         vmByVmid(vmid: $vmid) { vmid hidCode locationName operatorId }
-        heartbeat(deviceId: $deviceId) { deviceId status content payload receivedAt }
-        tempHistory(deviceId: $deviceId, limit: $limit) { temperature receivedAt }
+        heartbeat(deviceId: $deviceId) { deviceId temperature payload receivedAt }
+        heartbeatHistory(deviceId: $deviceId, limit: $limit) { temperature receivedAt }
         stock(deviceId: $deviceId) { deviceId channels { chid p_id quantity max } updatedAt }
         products(operatorId: $opId, status: "active") { code name }
       }`, { vmid, deviceId, limit: 1440, opId: operatorId })
 
       vm.value = data.vmByVmid
       currentHb.value = data.heartbeat
-      tempHistory.value = data.tempHistory || []
+      tempHistory.value = data.heartbeatHistory || []
       stock.value = data.stock
       products.value = data.products || []
     }
@@ -208,12 +208,12 @@ async function loadDetail() {
 
 async function loadHeartbeatData(deviceId: string) {
   const data = await gql(`query($deviceId: String!, $limit: Int) {
-    heartbeat(deviceId: $deviceId) { deviceId status content payload receivedAt }
-    tempHistory(deviceId: $deviceId, limit: $limit) { temperature receivedAt }
+    heartbeat(deviceId: $deviceId) { deviceId temperature payload receivedAt }
+    heartbeatHistory(deviceId: $deviceId, limit: $limit) { temperature receivedAt }
     stock(deviceId: $deviceId) { deviceId channels { chid p_id quantity max } updatedAt }
   }`, { deviceId, limit: 1440 })
   currentHb.value = data.heartbeat
-  tempHistory.value = data.tempHistory || []
+  tempHistory.value = data.heartbeatHistory || []
   stock.value = data.stock
 }
 
@@ -253,8 +253,8 @@ onMounted(async () => {
           <span>💓 {{ formatHeartbeat(currentHb?.receivedAt) }}</span>
         </div>
 
-        <div v-if="tempHistory.length > 0 && tempHistory[0]?.temperature != null" class="sc-row sc-sub">
-          <span>🌡️ {{ tempHistory[0].temperature }}°C</span>
+        <div v-if="currentHb?.temperature !== null && currentHb?.temperature !== undefined" class="sc-row sc-sub">
+          <span>🌡️ {{ currentHb.temperature }}°C</span>
         </div>
 
         <div v-if="vm?.locationName" class="sc-row sc-sub">

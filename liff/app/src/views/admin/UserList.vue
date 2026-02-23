@@ -152,7 +152,7 @@ onMounted(loadUsers)
     <PageHeader :crumbs="[
       { label: '系統管理', to: '/admin' },
       { label: '使用者管理' },
-    ]" :onRefresh="loadUsers">
+    ]">
       <span class="header-badge">{{ users.length }}</span>
     </PageHeader>
 
